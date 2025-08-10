@@ -37,6 +37,25 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
       },
     });
   }
+  // If no license key exists, automatically set up Free license
+
+  if (!licenseKey && !process.env.CALCOM_LICENSE_KEY) {
+    await prisma.deployment.upsert({
+      where: { id: 1 },
+
+      update: {
+        licenseKey: "", // Empty string for Free license
+
+        agreedLicenseAt: new Date(),
+      },
+
+      create: {
+        licenseKey: "", // Empty string for Free license
+
+        agreedLicenseAt: new Date(),
+      },
+    });
+  }
 
   // Check if there's already a valid license using LicenseKeyService
   const licenseKeyService = await LicenseKeySingleton.getInstance(deploymentRepo);
