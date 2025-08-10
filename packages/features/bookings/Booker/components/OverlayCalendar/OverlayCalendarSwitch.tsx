@@ -1,8 +1,5 @@
 import { useEffect } from "react";
 
-import { useLocale } from "@calcom/lib/hooks/useLocale";
-import { Switch } from "@calcom/ui/components/form";
-import { Button } from "@calcom/ui/components/button";
 import classNames from "@calcom/ui/classNames";
 
 import { useBookerStore } from "../../store";
@@ -15,11 +12,7 @@ interface OverlayCalendarSwitchProps {
 }
 
 export function OverlayCalendarSwitch({ enabled, hasSession, onStateChange }: OverlayCalendarSwitchProps) {
-  const { t } = useLocale();
   const setContinueWithProvider = useOverlayCalendarStore((state) => state.setContinueWithProviderModal);
-  const setCalendarSettingsOverlay = useOverlayCalendarStore(
-    (state) => state.setCalendarSettingsOverlayModal
-  );
   const layout = useBookerStore((state) => state.layout);
   const switchEnabled = enabled;
 
@@ -39,38 +32,6 @@ export function OverlayCalendarSwitch({ enabled, hasSession, onStateChange }: Ov
       className={classNames(
         "hidden gap-2",
         layout === "week_view" || layout === "column_view" ? "xl:flex" : "md:flex"
-      )}>
-      <div className="flex items-center gap-2 pr-2">
-        <Switch
-          data-testid="overlay-calendar-switch"
-          checked={switchEnabled}
-          id="overlayCalendar"
-          onCheckedChange={(state) => {
-            if (!hasSession) {
-              setContinueWithProvider(state);
-            } else {
-              onStateChange(state);
-            }
-          }}
-        />
-        <label
-          htmlFor="overlayCalendar"
-          className="text-emphasis text-sm font-medium leading-none hover:cursor-pointer">
-          {t("overlay_my_calendar")}
-        </label>
-      </div>
-      {hasSession && (
-        <Button
-          size="base"
-          data-testid="overlay-calendar-settings-button"
-          variant="icon"
-          color="secondary"
-          StartIcon="settings"
-          onClick={() => {
-            setCalendarSettingsOverlay(true);
-          }}
-        />
-      )}
-    </div>
+      )}></div>
   );
 }

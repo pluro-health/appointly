@@ -79,14 +79,7 @@ const Page = async ({ searchParams: _searchParams }: PageProps) => {
     <ShellMainAppDir
       heading={t("availability")}
       subtitle={t("configure_availability")}
-      CTA={
-        <AvailabilityCTA
-          toggleGroupOptions={[
-            { value: "mine", label: t("my_availability") },
-            ...(canViewTeamAvailability ? [{ value: "team", label: t("team_availability") }] : []),
-          ]}
-        />
-      }>
+      CTA={<AvailabilityCTA toggleGroupOptions={[]} />}>
       {searchParams?.type === "team" && canViewTeamAvailability ? (
         <AvailabilitySliderTable isOrg={!!organizationId} />
       ) : (
