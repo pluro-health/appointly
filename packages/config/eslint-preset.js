@@ -18,12 +18,12 @@ module.exports = {
   ],
   extends: [
     "plugin:playwright/playwright-test",
-    // "next",
+    "next",
     "plugin:prettier/recommended",
     "turbo",
     "plugin:you-dont-need-lodash-underscore/compatible-warn",
   ],
-  plugins: ["unused-imports", "react"],
+  plugins: ["unused-imports", "react", "react-hooks"],
   parserOptions: {
     tsconfigRootDir: __dirname,
     project: ["./apps/*/tsconfig.json", "./packages/*/tsconfig.json"],
@@ -36,6 +36,7 @@ module.exports = {
   rules: {
     "@next/next/no-img-element": "off",
     "@next/next/no-html-link-for-pages": "off",
+    "@next/next/no-sync-scripts": "off",
     "jsx-a11y/role-supports-aria-props": "off", // @see https://github.com/vercel/next.js/issues/27989#issuecomment-897638654
     "playwright/no-page-pause": "error",
     "react/jsx-curly-brace-presence": ["error", { props: "never", children: "never" }],
