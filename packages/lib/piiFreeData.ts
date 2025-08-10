@@ -119,7 +119,7 @@ export function getPiiFreeUser(user: {
     username: user.username,
     isFixed: user.isFixed,
     timeZone: user.timeZone,
-    allowDynamicBooking: user.allowDynamicBooking,
+    allowDynamicBooking: false,
     defaultScheduleId: user.defaultScheduleId,
     organizationId: user.organizationId,
     credentials: user.credentials?.map(getPiiFreeCredential),

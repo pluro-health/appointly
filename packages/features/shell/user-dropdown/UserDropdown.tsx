@@ -2,7 +2,6 @@ import { signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { ROADMAP, DESKTOP_APP_LINK } from "@calcom/lib/constants";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import useMeQuery from "@calcom/trpc/react/hooks/useMeQuery";
 import classNames from "@calcom/ui/classNames";
@@ -154,39 +153,9 @@ export function UserDropdown({ small }: UserDropdownProps) {
                       {t("out_of_office")}
                     </DropdownItem>
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
                 </>
               )}
 
-              <DropdownMenuItem>
-                <DropdownItem StartIcon="map" target="_blank" href={ROADMAP}>
-                  {t("visit_roadmap")}
-                </DropdownItem>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <DropdownItem
-                  type="button"
-                  StartIcon="circle-help"
-                  aria-hidden="true"
-                  onClick={handleHelpClick}>
-                  {t("help")}
-                </DropdownItem>
-              </DropdownMenuItem>
-              {!isPlatformPages && (
-                <DropdownMenuItem className="todesktop:hidden hidden lg:flex">
-                  <DropdownItem StartIcon="download" target="_blank" rel="noreferrer" href={DESKTOP_APP_LINK}>
-                    {t("download_desktop_app")}
-                  </DropdownItem>
-                </DropdownMenuItem>
-              )}
-
-              {!isPlatformPages && isPlatformUser && (
-                <DropdownMenuItem className="todesktop:hidden hidden lg:flex">
-                  <DropdownItem StartIcon="blocks" target="_blank" rel="noreferrer" href="/settings/platform">
-                    Platform
-                  </DropdownItem>
-                </DropdownMenuItem>
-              )}
               <DropdownMenuSeparator />
 
               <DropdownMenuItem>

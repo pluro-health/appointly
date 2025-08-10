@@ -105,7 +105,7 @@ const userSelect = {
   invitedTo: true,
   brandColor: true,
   darkBrandColor: true,
-  allowDynamicBooking: true,
+  allowDynamicBooking: false,
   allowSEOIndexing: true,
   receiveMonthlyDigestEmail: true,
   verified: true,
@@ -907,7 +907,7 @@ export class UserRepository {
         trialEndsAt: true,
         metadata: true,
         role: true,
-        allowDynamicBooking: true,
+        allowDynamicBooking: false,
         allowSEOIndexing: true,
         receiveMonthlyDigestEmail: true,
         profiles: true,
@@ -1020,7 +1020,7 @@ export class UserRepository {
     return this.prismaClient.user.findMany({
       where,
       select: {
-        allowDynamicBooking: true,
+        allowDynamicBooking: false,
         ...availabilityUserSelect,
         credentials: {
           select: credentialForCalendarServiceSelect,

@@ -1,6 +1,5 @@
 import type { User as UserAuth } from "next-auth";
 
-import { IS_DUB_REFERRALS_ENABLED } from "@calcom/lib/constants";
 import { useHasActiveTeamPlan } from "@calcom/lib/hooks/useHasPaidPlan";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { trpc } from "@calcom/trpc/react";
@@ -35,18 +34,6 @@ export function useBottomNavItems({
 
   return [
     // Render above to prevent layout shift as much as possible
-    isTrial
-      ? {
-          name: "skip_trial",
-          href: "",
-          isLoading: skipTeamTrialsMutation.isPending,
-          icon: "clock",
-          onClick: (e: { preventDefault: () => void }) => {
-            e.preventDefault();
-            skipTeamTrialsMutation.mutate({});
-          },
-        }
-      : null,
     {
       name: "view_public_page",
       href: publicPageUrl,
@@ -62,26 +49,6 @@ export function useBottomNavItems({
         showToast(t("link_copied"), "success");
       },
       icon: "copy",
-    },
-    IS_DUB_REFERRALS_ENABLED
-      ? {
-          name: "referral_text",
-          href: "/refer",
-          icon: "gift",
-        }
-      : null,
-
-    isAdmin
-      ? {
-          name: "impersonation",
-          href: "/settings/admin/impersonation",
-          icon: "lock",
-        }
-      : null,
-    {
-      name: "settings",
-      href: user?.org ? `/settings/organizations/profile` : "/settings/my-account/profile",
-      icon: "settings",
     },
   ].filter(Boolean) as NavigationItemType[];
 }

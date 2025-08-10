@@ -170,7 +170,7 @@ const getTabs = (orgBranding: OrganizationBranding | null) => {
 };
 
 // The following keys are assigned to admin only
-const adminRequiredKeys = ["admin"];
+const adminRequiredKeys = ["admin", "User Management"];
 const organizationRequiredKeys = ["organization"];
 const organizationAdminKeys = [
   "privacy",

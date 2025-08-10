@@ -95,7 +95,7 @@ const _loadAndValidateUsers = async ({
     contactOwnerEmail,
   });
 
-  const isDynamicAllowed = !users.some((user) => !user.allowDynamicBooking);
+  const isDynamicAllowed = false;
   if (!isDynamicAllowed && !eventTypeId) {
     logger.warn({
       message: "NewBooking: Some of the users in this group do not allow dynamic booking",

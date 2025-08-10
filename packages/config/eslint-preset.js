@@ -1,14 +1,29 @@
 /** @type {import("eslint").Linter.Config} */
 module.exports = {
   root: true,
+  ignorePatterns: [
+    "node_modules",
+    "apps/api/v2/dist",
+    "packages/platform/**/dist/*",
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/coverage/**",
+    "**/.turbo/**",
+    "**/**/.next",
+    "**/**/public",
+    "packages/prisma/zod",
+    "apps/web/public/embed",
+    "packages/ui/components/icon/dynamicIconImports.tsx",
+  ],
   extends: [
     "plugin:playwright/playwright-test",
-    "next",
+    // "next",
     "plugin:prettier/recommended",
     "turbo",
     "plugin:you-dont-need-lodash-underscore/compatible-warn",
   ],
-  plugins: ["unused-imports"],
+  plugins: ["unused-imports", "react"],
   parserOptions: {
     tsconfigRootDir: __dirname,
     project: ["./apps/*/tsconfig.json", "./packages/*/tsconfig.json"],
@@ -18,7 +33,6 @@ module.exports = {
       rootDir: ["apps/*/", "packages/*/"],
     },
   },
-  ignorePatterns: ["**/node_modules/**", "**/dist/**", "**/build/**", "**/coverage/**", "**/.turbo/**"],
   rules: {
     "@next/next/no-img-element": "off",
     "@next/next/no-html-link-for-pages": "off",

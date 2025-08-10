@@ -52,7 +52,6 @@ const user: User & { credentials: CredentialPayload[] } = {
   hideBranding: true,
   brandColor: "#797979",
   darkBrandColor: "#efefef",
-  allowDynamicBooking: true,
   timeFormat: 12,
   travelSchedules: [],
   locked: false,
