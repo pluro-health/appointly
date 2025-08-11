@@ -28,6 +28,10 @@ export const listHandler = async ({ ctx }: ListOptions) => {
       slug: true,
       hidden: true,
       metadata: true,
+      // Payment fields for consultation fees
+      consultationPrice: true,
+      paymentCurrency: true,
+      requiresPayment: true,
     },
   });
 };

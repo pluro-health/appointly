@@ -96,6 +96,10 @@ const BaseEventTypeUpdateInput = _EventTypeModel
     rrSegmentQueryValue: rrSegmentQueryValueSchema.optional(),
     useEventLevelSelectedCalendars: z.boolean().optional(),
     seatsPerTimeSlot: z.number().min(1).max(MAX_SEATS_PER_TIME_SLOT).nullable().optional(),
+    // Payment fields for consultation fees
+    consultationPrice: z.number().min(0).max(999999.99).multipleOf(0.01).nullable().optional(),
+    paymentCurrency: z.string().min(3).max(3).optional(),
+    requiresPayment: z.boolean().optional(),
   })
   .partial()
   .extend(_EventTypeModel.pick({ id: true }).shape);
@@ -115,6 +119,35 @@ export const ZUpdateInputSchema = BaseEventTypeUpdateInput.extend({
       message: "Applying default values and transformations",
     }
   ),
-}).strict();
+})
+  .strict()
+  .refine(
+    (data) => {
+      // Payment validation: consultationPrice required when requiresPayment is enabled
+      if (data.requiresPayment === true && (!data.consultationPrice || data.consultationPrice <= 0)) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Consultation price is required and must be greater than 0 when payment is enabled",
+      path: ["consultationPrice"],
+    }
+  )
+  .refine(
+    (data) => {
+      // Payment validation: requiresPayment must be disabled if consultationPrice is null/0
+      if (data.consultationPrice === null || data.consultationPrice === 0) {
+        if (data.requiresPayment === true) {
+          return false;
+        }
+      }
+      return true;
+    },
+    {
+      message: "Payment cannot be required when consultation price is not set",
+      path: ["requiresPayment"],
+    }
+  );
 // only run infer over the simple type, excluding refines/transforms.
 export type TUpdateInputSchema = z.infer<typeof BaseEventTypeUpdateInput>;

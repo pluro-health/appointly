@@ -34,7 +34,11 @@ export const createEventTypeInput = z.object({
   beforeEventBuffer: z.number().int().min(0).optional(),
   afterEventBuffer: z.number().int().min(0).optional(),
   scheduleId: z.number().int().optional(),
-  calVideoSettings: calVideoSettingsSchema
+  calVideoSettings: calVideoSettingsSchema,
+  // Payment fields for consultation fees
+  consultationPrice: z.number().min(0).nullish(),
+  paymentCurrency: z.string().default("INR").optional(),
+  requiresPayment: z.boolean().default(false).optional()
 })
   .partial({ hidden: true, locations: true })
   .refine((data) => (data.teamId ? data.teamId && data.schedulingType : true), {
@@ -49,6 +53,9 @@ export const createEventTypeInput = z.object({
     description: z.string(),
     length: z.number().int().min(MIN_EVENT_DURATION_MINUTES).max(MAX_EVENT_DURATION_MINUTES),
     teamId: z.number().nullish(),
+    consultationPrice: z.number().min(0).nullish(),
+    paymentCurrency: z.string().optional(),
+    requiresPayment: z.boolean().optional(),
   }).strict();
 
 export type EventTypeLocation = (z.infer<typeof imports.eventTypeLocations>)[number];

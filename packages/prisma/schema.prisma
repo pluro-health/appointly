@@ -209,6 +209,11 @@ model EventType {
   restrictionScheduleId Int?
   restrictionSchedule   Schedule? @relation("restrictionSchedule", fields: [restrictionScheduleId], references: [id])
 
+  // Payment fields for consultation fees
+  consultationPrice Decimal? @db.Decimal(10, 2)
+  paymentCurrency   String   @default("INR")
+  requiresPayment   Boolean  @default(false)
+
   @@unique([userId, slug])
   @@unique([teamId, slug])
   @@unique([userId, parentId])
@@ -219,6 +224,8 @@ model EventType {
   @@index([secondaryEmailId])
   @@index([parentId])
   @@index([restrictionScheduleId])
+  @@index([requiresPayment])
+  @@index([consultationPrice])
 }
 
 model Credential {

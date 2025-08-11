@@ -77,6 +77,10 @@ export const eventTypeSelect = {
   maxLeadThreshold: true,
   useEventLevelSelectedCalendars: true,
   customReplyToEmail: true,
+  // Payment fields for consultation fees
+  consultationPrice: true,
+  paymentCurrency: true,
+  requiresPayment: true,
   restrictionScheduleId: true,
   useBookerTimezone: true,
   instantMeetingSchedule: {

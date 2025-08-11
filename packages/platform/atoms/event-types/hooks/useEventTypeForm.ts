@@ -144,6 +144,13 @@ export const useEventTypeForm = ({
       calVideoSettings: eventType.calVideoSettings,
       maxActiveBookingsPerBooker: eventType.maxActiveBookingsPerBooker || null,
       maxActiveBookingPerBookerOfferReschedule: eventType.maxActiveBookingPerBookerOfferReschedule,
+      // Payment fields for consultation fees
+      consultationPrice: (eventType as any).consultationPrice
+        ? Number((eventType as any).consultationPrice)
+        : null,
+      paymentCurrency: (eventType as any).paymentCurrency || "INR",
+      requiresPayment: (eventType as any).requiresPayment || false,
+      paymentDescription: (eventType as any).paymentDescription || "",
     };
   }, [eventType, periodDates]);
 
@@ -176,6 +183,17 @@ export const useEventTypeForm = ({
           offsetStart: z.union([z.string().transform((val) => +val), z.number()]).optional(),
           bookingFields: eventTypeBookingFieldsSchema,
           locations: locationsResolver(t),
+          // Payment validation (simplified to avoid circular dependencies)
+          consultationPrice: z
+            .number()
+            .min(0, { message: t("consultation_price_min_error") })
+            .max(999999.99, { message: t("consultation_price_max_error") })
+            .multipleOf(0.01, { message: t("consultation_price_decimal_error") })
+            .nullable()
+            .optional(),
+          paymentCurrency: z.string().min(3).max(3),
+          requiresPayment: z.boolean(),
+          paymentDescription: z.string().optional(),
           calVideoSettings: z
             .object({
               redirectUrlOnExit: z.string().url().nullish(),
@@ -200,6 +218,16 @@ export const useEventTypeForm = ({
 
   // Watch all form values to trigger onFormStateChange on any change
   const watchedValues = form.watch();
+
+  useEffect(() => {
+    if (onFormStateChange) {
+      onFormStateChange({
+        isDirty: isFormDirty,
+        dirtyFields: dirtyFields as Partial<FormValues>,
+        values: watchedValues,
+      });
+    }
+  }, [isFormDirty, watchedValues, onFormStateChange]);
 
   const isObject = <T>(value: T): boolean => {
     return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -345,6 +373,27 @@ export const useEventTypeForm = ({
     if (durationLimits) {
       const isValid = validateIntervalLimitOrder(durationLimits);
       if (!isValid) throw new Error(t("event_setup_duration_limits_error"));
+    }
+
+    // Payment validation at component level
+    const finalRequiresPayment = input.requiresPayment ?? values.requiresPayment;
+    const finalConsultationPrice = input.consultationPrice ?? values.consultationPrice;
+
+    if (
+      finalRequiresPayment &&
+      (finalConsultationPrice === null || finalConsultationPrice === undefined || finalConsultationPrice <= 0)
+    ) {
+      throw new Error(
+        t("consultation_price_required_when_payment_enabled") ||
+          "Consultation price is required and must be greater than 0 when payment is enabled"
+      );
+    }
+
+    if (finalConsultationPrice && finalConsultationPrice > 0 && !finalRequiresPayment) {
+      throw new Error(
+        t("payment_must_be_enabled_when_price_set") ||
+          "Payment must be enabled when consultation price is set"
+      );
     }
 
     const layoutError = validateBookerLayouts(metadata?.bookerLayouts || null);

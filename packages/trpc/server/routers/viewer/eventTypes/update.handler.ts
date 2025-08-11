@@ -94,6 +94,9 @@ export const updateHandler = async ({ ctx, input }: UpdateOptions) => {
     seatsPerTimeSlot,
     restrictionScheduleId,
     calVideoSettings,
+    consultationPrice,
+    paymentCurrency,
+    requiresPayment,
     ...rest
   } = input;
 
@@ -210,6 +213,54 @@ export const updateHandler = async ({ ctx, input }: UpdateOptions) => {
     );
   }
 
+  // Payment field validation and business rules
+  if (requiresPayment !== undefined || consultationPrice !== undefined) {
+    // Get current payment status for business rule validation
+    const currentPaymentStatus = await ctx.prisma.eventType.findUnique({
+      where: { id },
+      select: { requiresPayment: true, consultationPrice: true },
+    });
+
+    // Check if payment is being disabled when there are pending bookings
+    if (requiresPayment === false && currentPaymentStatus?.requiresPayment) {
+      // Check for pending/upcoming bookings that require payment
+      const upcomingBookings = await ctx.prisma.booking.findMany({
+        where: {
+          eventTypeId: id,
+          startTime: { gt: new Date() },
+          status: { in: ["PENDING", "ACCEPTED"] },
+        },
+        take: 1,
+      });
+
+      if (upcomingBookings.length > 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "Cannot disable payment when there are pending or upcoming bookings with payment requirements.",
+        });
+      }
+    }
+
+    // Validate payment configuration consistency
+    if (
+      requiresPayment === true &&
+      (consultationPrice === null || consultationPrice === undefined || consultationPrice <= 0)
+    ) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Consultation price is required and must be greater than 0 when payment is enabled",
+      });
+    }
+
+    if (consultationPrice && consultationPrice > 0 && requiresPayment === false) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Payment must be enabled when consultation price is set",
+      });
+    }
+  }
+
   const data: Prisma.EventTypeUpdateInput = {
     ...rest,
     // autoTranslate feature is allowed for org users only
@@ -228,6 +279,10 @@ export const updateHandler = async ({ ctx, input }: UpdateOptions) => {
       eventType.team?.rrTimestampBasis && eventType.team?.rrTimestampBasis !== RRTimestampBasis.CREATED_AT
         ? null
         : rest.maxLeadThreshold,
+    // Payment fields - only include in update if they are explicitly provided
+    ...(consultationPrice !== undefined && { consultationPrice }),
+    ...(paymentCurrency !== undefined && { paymentCurrency }),
+    ...(requiresPayment !== undefined && { requiresPayment }),
   };
   data.locations = locations ?? undefined;
 

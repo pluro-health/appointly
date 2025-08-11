@@ -24,7 +24,10 @@ import { TextAreaField } from "@calcom/ui/components/form";
 import { Label } from "@calcom/ui/components/form";
 import { TextField } from "@calcom/ui/components/form";
 import { Select } from "@calcom/ui/components/form";
+import { Switch } from "@calcom/ui/components/form";
+import { Icon } from "@calcom/ui/components/icon";
 import { Skeleton } from "@calcom/ui/components/skeleton";
+import { Tooltip } from "@calcom/ui/components/tooltip";
 
 export type EventSetupTabCustomClassNames = {
   wrapper?: string;
@@ -83,6 +86,10 @@ export const EventSetupTab = (
   const descriptionLockedProps = shouldLockDisableProps("description");
   const urlLockedProps = shouldLockDisableProps("slug");
   const titleLockedProps = shouldLockDisableProps("title");
+
+  const requiresPayment = formMethods.watch("requiresPayment");
+
+  const currencyOptions = [{ value: "INR", label: "₹ INR - Indian Rupee" }];
 
   return (
     <div>
@@ -259,6 +266,102 @@ export const EventSetupTab = (
                 />
               )}
             />
+          </div>
+        </div>
+
+        {/* Payment Configuration Section */}
+        <div
+          className={classNames(
+            "border-subtle rounded-lg border p-6",
+            customClassNames?.locationSection?.container
+          )}>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Skeleton as={Label} loadingClassName="w-16" className="text-base font-medium">
+                  {t("payment_settings")}
+                  {shouldLockIndicator("requiresPayment")}
+                </Skeleton>
+                <Tooltip content={t("payment_settings_tooltip")}>
+                  <Icon name="info" className="h-4 w-4 text-gray-400" />
+                </Tooltip>
+              </div>
+              <Switch
+                checked={requiresPayment}
+                onCheckedChange={(checked) => {
+                  formMethods.setValue("requiresPayment", checked, { shouldDirty: true });
+                  if (!checked) {
+                    formMethods.setValue("consultationPrice", null, { shouldDirty: true });
+                  } else {
+                    // When enabling payment, check if consultation price is set
+                    const currentPrice = formMethods.getValues("consultationPrice");
+                    if (!currentPrice || currentPrice <= 0) {
+                      // Trigger validation on the consultation price field
+                      formMethods.trigger("consultationPrice");
+                    }
+                  }
+                }}
+                disabled={shouldLockDisableProps("requiresPayment").disabled}
+              />
+            </div>
+
+            <p className="text-sm text-gray-500">{t("payment_settings_description")}</p>
+
+            {requiresPayment && (
+              <div className="space-y-4 border-l-2 border-blue-200 pl-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <TextField
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="999999.99"
+                      label={t("consultation_price")}
+                      placeholder="500.00"
+                      disabled={shouldLockDisableProps("consultationPrice").disabled}
+                      {...formMethods.register("consultationPrice", {
+                        valueAsNumber: true,
+                        required: requiresPayment ? t("consultation_price_required") : false,
+                        min: {
+                          value: 0.01,
+                          message: t("consultation_price_min_error"),
+                        },
+                        max: {
+                          value: 999999.99,
+                          message: t("consultation_price_max_error"),
+                        },
+                      })}
+                    />
+                  </div>
+
+                  <div>
+                    <Label>{t("currency")}</Label>
+                    <Controller
+                      name="paymentCurrency"
+                      control={formMethods.control}
+                      defaultValue={eventType.paymentCurrency || "INR"}
+                      render={({ field: { value, onChange } }) => (
+                        <Select
+                          options={currencyOptions}
+                          value={
+                            currencyOptions.find((option) => option.value === value) || currencyOptions[0]
+                          }
+                          onChange={(selectedOption) => {
+                            onChange(selectedOption?.value || "INR");
+                          }}
+                          placeholder={t("select_currency")}
+                          isDisabled={shouldLockDisableProps("paymentCurrency").disabled}
+                        />
+                      )}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-sm text-gray-600">{t("payment_description_help")}</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
