@@ -682,6 +682,8 @@ model InvitationToken {
   role        UserPermissionRole @default(USER)
   invitedBy   User               @relation("InvitationToken_invitedBy", fields: [invitedById], references: [id], onDelete: Cascade)
   invitedById Int
+  centerId    Int?
+  center      Center?            @relation(fields: [centerId], references: [id], onDelete: SetNull)
   createdAt   DateTime           @default(now())
   expiresAt   DateTime
   usedAt      DateTime?
@@ -690,6 +692,7 @@ model InvitationToken {
   @@index([email])
   @@index([invitedById])
   @@index([expiresAt])
+  @@index([centerId])
 }
 
 model InstantMeetingToken {
@@ -2461,6 +2464,7 @@ model Center {
   // Relations
   users            User[]
   easebuzzPayments EasebuzzPayment[]
+  invitationTokens InvitationToken[]
 
   @@index([easebuzzSubMerchantId])
   @@index([isActive])

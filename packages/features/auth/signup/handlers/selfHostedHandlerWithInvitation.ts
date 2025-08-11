@@ -38,7 +38,12 @@ export default async function handler(body: Record<string, string>) {
   }
 
   let foundToken: { id: number; teamId: number | null; expires: Date } | null = null;
-  let invitationData: { email: string; role: UserPermissionRole; invitedById: number } | null = null;
+  let invitationData: {
+    email: string;
+    role: UserPermissionRole;
+    invitedById: number;
+    centerId?: number;
+  } | null = null;
   let correctedUsername = username;
 
   // Check if this is an invitation token (not a team invite token)
@@ -84,7 +89,7 @@ export default async function handler(body: Record<string, string>) {
       correctedUsername = await validateAndGetCorrectedUsernameForTeam({
         username,
         email: userEmail,
-        teamId: foundToken?.teamId || null,
+        teamId: foundToken?.teamId,
         isSignup: true,
       });
     }
@@ -218,6 +223,7 @@ export default async function handler(body: Record<string, string>) {
         email: userEmail,
         password: { create: { hash: hashedPassword } },
         role: invitationData.role,
+        centerId: invitationData.centerId,
         emailVerified: new Date(Date.now()),
         identityProvider: IdentityProvider.CAL,
         creationSource: "WEBAPP",

@@ -21,6 +21,7 @@ const Page = async () => {
       <div className="flex">
         <ConnectedAppsList
           baseURL="/settings/admin/connected-apps"
+          useQueryParam={true}
           classNames={{
             appCategoryNavigationRoot: "overflow-x-scroll",
           }}

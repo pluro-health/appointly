@@ -100,10 +100,11 @@ export const adminRouter = router({
         role: z.enum(["USER", "ADMIN"]),
         expiresInHours: z.number().min(1).max(168).default(24),
         replaceExisting: z.boolean().optional().default(false),
+        centerId: z.number().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const { email, role, expiresInHours, replaceExisting } = input;
+      const { email, role, expiresInHours, replaceExisting, centerId } = input;
 
       // Check if user already exists
       const existingUser = await ctx.prisma.user.findUnique({
@@ -137,7 +138,13 @@ export const adminRouter = router({
       }
 
       // Create invitation token
-      const token = await createInvitationToken(email.toLowerCase(), role, ctx.user.id, expiresInHours);
+      const token = await createInvitationToken(
+        email.toLowerCase(),
+        role,
+        ctx.user.id,
+        expiresInHours,
+        centerId
+      );
 
       // Send invitation email
       await sendInvitationEmail({
@@ -166,6 +173,13 @@ export const adminRouter = router({
               id: true,
               name: true,
               email: true,
+            },
+          },
+          center: {
+            select: {
+              id: true,
+              name: true,
+              address: true,
             },
           },
         },
@@ -330,6 +344,77 @@ export const adminRouter = router({
       });
 
       return { success: true, message: "Invitation email resent successfully" };
+    }),
+
+  // Update user
+  updateUser: authedAdminProcedure
+    .input(
+      z.object({
+        userId: z.number(),
+        centerId: z.number().nullable().optional(),
+        password: z.string().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { userId, centerId, password } = input;
+
+      // Get user to update
+      const userToUpdate = await ctx.prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          email: true,
+        },
+      });
+
+      if (!userToUpdate) {
+        throw new Error("User not found");
+      }
+
+      // Prevent admin from updating themselves
+      if (userToUpdate.id === ctx.user.id) {
+        throw new Error("Cannot update your own account");
+      }
+
+      const updateData: any = {};
+
+      // Update center if provided (including null to remove center assignment)
+      if (centerId !== undefined) {
+        updateData.centerId = centerId;
+      }
+
+      // Update password if provided
+      if (password) {
+        const { hashPassword } = await import("@calcom/features/auth/lib/hashPassword");
+        const hashedPassword = await hashPassword(password);
+        updateData.password = {
+          upsert: {
+            create: { hash: hashedPassword },
+            update: { hash: hashedPassword },
+          },
+        };
+      }
+
+      // Update the user
+      const updatedUser = await ctx.prisma.user.update({
+        where: { id: userId },
+        data: updateData,
+        include: {
+          center: {
+            select: {
+              id: true,
+              name: true,
+              address: true,
+            },
+          },
+        },
+      });
+
+      return {
+        success: true,
+        message: "User updated successfully",
+        user: updatedUser,
+      };
     }),
 
   // Medical Centers Management

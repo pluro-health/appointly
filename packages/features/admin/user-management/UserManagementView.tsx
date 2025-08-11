@@ -45,6 +45,11 @@ interface InvitationToken {
     name: string | null;
     email: string;
   };
+  center?: {
+    id: number;
+    name: string;
+    address: string | null;
+  } | null;
 }
 
 export function UserManagementView() {
@@ -56,6 +61,7 @@ export function UserManagementView() {
   const [inviteCenterId, setInviteCenterId] = useState<number | null>(null);
   const [isInviting, setIsInviting] = useState(false);
   const [userToDelete, setUserToDelete] = useState<number | null>(null);
+  const [userToEdit, setUserToEdit] = useState<User | null>(null);
   const [invitationToDelete, setInvitationToDelete] = useState<number | null>(null);
   const [isReplacingInvitation, setIsReplacingInvitation] = useState(false);
 
@@ -108,6 +114,18 @@ export function UserManagementView() {
     },
     onError: (error) => {
       showToast(error.message || "Failed to delete user", "error");
+    },
+  });
+
+  // Update user mutation
+  const updateUserMutation = trpc.viewer.admin.updateUser.useMutation({
+    onSuccess: () => {
+      showToast("User updated successfully", "success");
+      setUserToEdit(null);
+      refetchUsers();
+    },
+    onError: (error) => {
+      showToast(error.message || "Failed to update user", "error");
     },
   });
 
@@ -172,6 +190,7 @@ export function UserManagementView() {
         role: inviteRole,
         expiresInHours: 24,
         replaceExisting: isReplacingInvitation,
+        centerId: inviteCenterId,
       });
     } finally {
       setIsInviting(false);
@@ -195,6 +214,26 @@ export function UserManagementView() {
         setIsReplacingInvitation(true);
         setIsInviteDialogOpen(true);
       }
+    } catch (error) {
+      // Error is handled in the mutation
+    }
+  };
+
+  const handleUpdateUser = async (userId: number, centerId: number | null, password: string) => {
+    try {
+      const updateData: any = {};
+
+      // Always include centerId (can be null to remove center assignment)
+      updateData.centerId = centerId;
+
+      if (password.trim()) {
+        updateData.password = password;
+      }
+
+      await updateUserMutation.mutateAsync({
+        userId,
+        ...updateData,
+      });
     } catch (error) {
       // Error is handled in the mutation
     }
@@ -396,9 +435,6 @@ export function UserManagementView() {
                     {user.center ? (
                       <div className="text-sm">
                         <div className="font-medium">{user.center.name}</div>
-                        {user.center.address && (
-                          <div className="text-xs text-gray-500">{user.center.address}</div>
-                        )}
                       </div>
                     ) : (
                       <span className="text-sm text-gray-400">No center assigned</span>
@@ -425,6 +461,12 @@ export function UserManagementView() {
                             : []),
                           ...(currentUser?.id !== user.id
                             ? [
+                                {
+                                  id: "edit",
+                                  label: "Edit User",
+                                  onClick: () => setUserToEdit(user),
+                                  icon: "pencil" as const,
+                                },
                                 {
                                   id: "delete",
                                   label: "Delete User",
@@ -467,6 +509,7 @@ export function UserManagementView() {
                 <TableRow>
                   <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
+                  <TableHead>Medical Center</TableHead>
                   <TableHead>Invited By</TableHead>
                   <TableHead>Sent</TableHead>
                   <TableHead>Expires</TableHead>
@@ -482,6 +525,15 @@ export function UserManagementView() {
                     <TableCell>{invitation.email}</TableCell>
                     <TableCell>
                       <Badge variant={getRoleBadgeColor(invitation.role)}>{invitation.role}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      {invitation.center ? (
+                        <div className="text-sm">
+                          <div className="font-medium">{invitation.center.name}</div>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-400">No center assigned</span>
+                      )}
                     </TableCell>
                     <TableCell>{invitation.invitedBy.name || invitation.invitedBy.email}</TableCell>
                     <TableCell>{new Date(invitation.createdAt).toLocaleDateString()}</TableCell>
@@ -523,6 +575,21 @@ export function UserManagementView() {
         </div>
       )}
 
+      {/* Edit User Dialog */}
+      <Dialog open={!!userToEdit} onOpenChange={(open) => !open && setUserToEdit(null)}>
+        <DialogContent title="Edit User">
+          {userToEdit && (
+            <EditUserForm
+              user={userToEdit}
+              centers={centersData?.centers || []}
+              onSave={handleUpdateUser}
+              onCancel={() => setUserToEdit(null)}
+              isPending={updateUserMutation.isPending}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Delete User Confirmation Dialog */}
       <Dialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
         <ConfirmationDialogContent
@@ -552,5 +619,92 @@ export function UserManagementView() {
         </ConfirmationDialogContent>
       </Dialog>
     </div>
+  );
+}
+
+interface EditUserFormProps {
+  user: User;
+  centers: Array<{ id: number; name: string; address: string | null }>;
+  onSave: (userId: number, centerId: number | null, password: string) => void;
+  onCancel: () => void;
+  isPending: boolean;
+}
+
+function EditUserForm({ user, centers, onSave, onCancel, isPending }: EditUserFormProps) {
+  const [centerId, setCenterId] = useState<number | null>(user.center?.id || null);
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(user.id, centerId, password);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Email: {user.email}</label>
+        <p className="text-xs text-gray-500">Email cannot be changed</p>
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Name: {user.name || "No name provided"}</label>
+        <p className="text-xs text-gray-500">Name cannot be changed</p>
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Medical Center</label>
+        <Select
+          options={[
+            { value: null, label: "No center assigned" },
+            ...centers.map((center) => ({
+              value: center.id,
+              label: center.name,
+            })),
+          ]}
+          value={
+            centerId
+              ? {
+                  value: centerId,
+                  label: centers.find((c) => c.id === centerId)?.name || "",
+                }
+              : { value: null, label: "No center assigned" }
+          }
+          onChange={(value: any) => setCenterId(value?.value || null)}
+          placeholder="Select medical center"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-sm font-medium">New Password (Optional)</label>
+        <div className="relative">
+          <input
+            type={showPassword ? "text" : "password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Leave blank to keep current password"
+            className="w-full rounded-md border border-gray-300 px-3 py-2 pr-10 text-sm"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-2 top-1/2 -translate-y-1/2 transform text-gray-500 hover:text-gray-700">
+            <Icon name={showPassword ? "eye-off" : "eye"} className="h-4 w-4" />
+          </button>
+        </div>
+        <p className="text-xs text-gray-500">
+          Enter a new password to change it, or leave blank to keep the current password
+        </p>
+      </div>
+
+      <DialogFooter>
+        <Button type="button" variant="button" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={isPending}>
+          {isPending ? "Saving..." : "Save Changes"}
+        </Button>
+      </DialogFooter>
+    </form>
   );
 }

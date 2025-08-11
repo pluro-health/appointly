@@ -40,12 +40,27 @@ export const BookerWebWrapper = (props: BookerWebWrapperAtomProps) => {
   });
   const event = props.eventData
     ? {
-        data: props.eventData,
+        data: {
+          ...props.eventData,
+          consultationPrice: (props.eventData as any).consultationPrice
+            ? Number((props.eventData as any).consultationPrice)
+            : null,
+        },
         isSuccess: true,
         isError: false,
         isPending: false,
       }
-    : clientFetchedEvent;
+    : {
+        ...clientFetchedEvent,
+        data: clientFetchedEvent.data
+          ? {
+              ...clientFetchedEvent.data,
+              consultationPrice: (clientFetchedEvent.data as any).consultationPrice
+                ? Number((clientFetchedEvent.data as any).consultationPrice)
+                : null,
+            }
+          : undefined,
+      };
 
   const bookerLayout = useBookerLayout(event.data?.profile?.bookerLayouts);
   const selectedDate = searchParams?.get("date");

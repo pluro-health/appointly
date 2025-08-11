@@ -3450,5 +3450,8 @@
   "payment_description_required_when_payment_enabled": "Payment description is required when payment is enabled",
   "requires_payment": "Requires Payment",
   "payment_must_be_enabled_when_price_set": "Payment must be enabled when consultation price is set",
+  "pay_later": "Pay later",
+  "book_and_pay": "Book & Pay",
+  "consultation_fee": "Consultation Fee",
   "ADD_NEW_STRINGS_ABOVE_THIS_LINE_TO_PREVENT_MERGE_CONFLICTS": "↑↑↑↑↑↑↑↑↑↑↑↑↑ Add your new strings above here ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑"
 }

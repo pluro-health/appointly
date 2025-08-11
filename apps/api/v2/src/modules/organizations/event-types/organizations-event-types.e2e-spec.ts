@@ -999,8 +999,8 @@ describe("Organizations Event Types Endpoints", () => {
               isDefault: true,
               type: "phone",
               slug: "attendeePhoneNumber",
-              required: false,
-              hidden: true,
+              required: true,
+              hidden: false,
             },
             {
               isDefault: true,

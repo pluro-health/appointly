@@ -11,6 +11,7 @@ export interface InvitationTokenData {
   email: string;
   role: UserPermissionRole;
   invitedById: number;
+  centerId?: number;
 }
 
 export interface ValidateInvitationTokenResult {
@@ -103,6 +104,7 @@ export async function validateInvitationToken(token: string): Promise<ValidateIn
         email: invitationToken.email,
         role: invitationToken.role,
         invitedById: invitationToken.invitedById,
+        centerId: invitationToken.centerId ?? undefined,
       },
     };
   } catch (error) {
@@ -147,13 +149,15 @@ export async function markInvitationTokenAsUsed(token: string): Promise<boolean>
  * @param role - Role to assign to the user
  * @param invitedById - ID of the user sending the invitation
  * @param expiresInHours - Hours until token expires (default: 24)
+ * @param centerId - Optional center ID to assign the user to
  * @returns Promise<string> - The generated token
  */
 export async function createInvitationToken(
   email: string,
   role: UserPermissionRole,
   invitedById: number,
-  expiresInHours = 24
+  expiresInHours = 24,
+  centerId?: number
 ): Promise<string> {
   const token = randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + expiresInHours * 60 * 60 * 1000);
@@ -164,6 +168,7 @@ export async function createInvitationToken(
       token,
       role,
       invitedById,
+      centerId,
       expiresAt,
     },
   });

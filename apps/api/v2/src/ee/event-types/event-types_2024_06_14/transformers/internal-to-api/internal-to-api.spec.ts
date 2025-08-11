@@ -832,7 +832,7 @@ describe("transformBookingFieldsInternalToApi", () => {
       {
         name: "attendeePhoneNumber",
         type: "phone",
-        hidden: true,
+        hidden: false,
         sources: [
           {
             id: "default",
@@ -840,8 +840,8 @@ describe("transformBookingFieldsInternalToApi", () => {
             label: "Default",
           },
         ],
-        editable: "system-but-optional",
-        required: false,
+        editable: "system",
+        required: true,
         defaultLabel: "phone_number",
       },
     ];
@@ -851,8 +851,8 @@ describe("transformBookingFieldsInternalToApi", () => {
         isDefault: true,
         type: "phone",
         slug: "attendeePhoneNumber",
-        required: false,
-        hidden: true,
+        required: true,
+        hidden: false,
         disableOnPrefill: false,
         label: undefined,
         placeholder: undefined,

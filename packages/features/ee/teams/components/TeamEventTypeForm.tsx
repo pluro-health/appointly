@@ -235,10 +235,6 @@ export const TeamEventTypeForm = ({
                     />
                   </div>
                 </div>
-
-                <div>
-                  <p className="text-sm text-gray-600">{t("payment_description_help")}</p>
-                </div>
               </div>
             )}
           </div>

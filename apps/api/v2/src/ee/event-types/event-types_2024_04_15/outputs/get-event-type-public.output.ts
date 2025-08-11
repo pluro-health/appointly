@@ -373,6 +373,18 @@ class PublicEventTypeOutput {
 
   @IsOptional()
   @ApiPropertyOptional({ type: Number, nullable: true })
+  consultationPrice?: number | null;
+
+  @IsString()
+  @ApiProperty()
+  paymentCurrency!: string;
+
+  @IsBoolean()
+  @ApiProperty()
+  requiresPayment!: boolean;
+
+  @IsOptional()
+  @ApiPropertyOptional({ type: Number, nullable: true })
   seatsPerTimeSlot?: number | null;
 
   @IsBoolean()

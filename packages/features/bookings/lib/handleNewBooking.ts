@@ -27,6 +27,7 @@ import getICalUID from "@calcom/emails/lib/getICalUID";
 import { CalendarEventBuilder } from "@calcom/features/CalendarEventBuilder";
 import { handleWebhookTrigger } from "@calcom/features/bookings/lib/handleWebhookTrigger";
 import { isEventTypeLoggingEnabled } from "@calcom/features/bookings/lib/isEventTypeLoggingEnabled";
+import { getShouldServeCache } from "@calcom/features/calendar-cache/lib/getShouldServeCache";
 import AssignmentReasonRecorder from "@calcom/features/ee/round-robin/assignmentReason/AssignmentReasonRecorder";
 import {
   allowDisablingAttendeeConfirmationEmails,
@@ -91,6 +92,7 @@ import { refreshCredentials } from "./getAllCredentialsForUsersOnEvent/refreshCr
 import getBookingDataSchema from "./getBookingDataSchema";
 import { addVideoCallDataToEvent } from "./handleNewBooking/addVideoCallDataToEvent";
 import { checkActiveBookingsLimitForBooker } from "./handleNewBooking/checkActiveBookingsLimitForBooker";
+import { checkBookingAndDurationLimits } from "./handleNewBooking/checkBookingAndDurationLimits";
 import { checkIfBookerEmailIsBlocked } from "./handleNewBooking/checkIfBookerEmailIsBlocked";
 import { createBooking } from "./handleNewBooking/createBooking";
 import type { Booking } from "./handleNewBooking/createBooking";
@@ -777,6 +779,7 @@ async function handler(
     }
 
     if (!input.bookingData.allRecurringDates || input.bookingData.isFirstRecurringSlot) {
+      let availableUsers: IsFixedAwareUser[] = [];
       try {
         availableUsers = await ensureAvailableUsers(
           { ...eventTypeWithUsers, users: [...qualifiedRRUsers, ...fixedUsers] as IsFixedAwareUser[] },
@@ -1883,7 +1886,15 @@ async function handler(
           });
         }
       }
-      if (noEmail !== true) {
+      // ✅ CRITICAL FIX: Only send emails if NOT a paid event waiting for payment
+      const isPaidEventPendingPayment =
+        (paymentAppData.enabled && paymentAppData.price > 0 && !booking?.paid) || // Legacy payment apps
+        (eventType.requiresPayment &&
+          eventType.consultationPrice &&
+          eventType.consultationPrice > 0 &&
+          !booking?.paid); // New consultation fee system
+
+      if (noEmail !== true && !isPaidEventPendingPayment) {
         let isHostConfirmationEmailsDisabled = false;
         let isAttendeeConfirmationEmailDisabled = false;
 
@@ -1904,6 +1915,10 @@ async function handler(
           "Emails: Sending scheduled emails for booking confirmation",
           safeStringify({
             calEvent: getPiiFreeCalendarEvent(evt),
+            isPaidEventPendingPayment,
+            paymentEnabled: paymentAppData.enabled,
+            paymentPrice: paymentAppData.price,
+            bookingPaid: booking?.paid,
           })
         );
 
@@ -1921,6 +1936,16 @@ async function handler(
             eventType.metadata
           );
         }
+      } else if (isPaidEventPendingPayment) {
+        loggerWithEventDetails.info(
+          "🔒 Skipping email sending for paid event pending payment",
+          safeStringify({
+            bookingId: booking?.id,
+            paymentEnabled: paymentAppData.enabled,
+            paymentPrice: paymentAppData.price,
+            bookingPaid: booking?.paid,
+          })
+        );
       }
     }
   } else {
@@ -1935,6 +1960,7 @@ async function handler(
     );
   }
 
+  // Check if booking requires payment (both legacy payment apps and new consultation fee system)
   const bookingRequiresPayment =
     !Number.isNaN(paymentAppData.price) &&
     paymentAppData.price > 0 &&
@@ -1986,88 +2012,127 @@ async function handler(
 
   if (bookingRequiresPayment) {
     loggerWithEventDetails.debug(`Booking ${organizerUser.username} requires payment`);
-    // Load credentials.app.categories
-    const credentialPaymentAppCategories = await prisma.credential.findMany({
-      where: {
-        ...(paymentAppData.credentialId ? { id: paymentAppData.credentialId } : { userId: organizerUser.id }),
-        app: {
-          categories: {
-            hasSome: ["payment"],
+
+    // Handle new consultation fee system (uses environment variables, not database credentials)
+    if (paymentAppData.appId === "consultation") {
+      loggerWithEventDetails.debug(`Using consultation fee system with appId: ${paymentAppData.appId}`);
+
+      // For consultation fees, we don't need to create a payment record here
+      // The payment will be handled by the separate payment initiation API
+      // Just return the booking with payment required flag
+
+      const bookingResponse = {
+        ...booking,
+        user: {
+          ...booking.user,
+          email: null,
+        },
+        videoCallUrl: metadata?.videoCallUrl,
+        // Ensure seatReferenceUid is properly typed as string | null
+        seatReferenceUid: evt.attendeeSeatId,
+      };
+
+      return {
+        ...bookingResponse,
+        ...luckyUserResponse,
+        message: "Payment required",
+        paymentRequired: true,
+        paymentUid: undefined, // Will be created by payment initiation API
+        paymentId: undefined, // Will be created by payment initiation API
+        isDryRun,
+        ...(isDryRun ? { troubleshooterData } : {}),
+      };
+    } else {
+      // Handle legacy payment apps (look up credentials from database)
+      loggerWithEventDetails.debug(`Using legacy payment app system with appId: ${paymentAppData.appId}`);
+
+      // Load credentials.app.categories
+      const credentialPaymentAppCategories = await prisma.credential.findMany({
+        where: {
+          ...(paymentAppData.credentialId
+            ? { id: paymentAppData.credentialId }
+            : { userId: organizerUser.id }),
+          app: {
+            categories: {
+              hasSome: ["payment"],
+            },
           },
         },
-      },
-      select: {
-        key: true,
-        appId: true,
-        app: {
-          select: {
-            categories: true,
-            dirName: true,
+        select: {
+          key: true,
+          appId: true,
+          app: {
+            select: {
+              categories: true,
+              dirName: true,
+            },
           },
         },
-      },
-    });
-    const eventTypePaymentAppCredential = credentialPaymentAppCategories.find((credential) => {
-      return credential.appId === paymentAppData.appId;
-    });
+      });
+      const eventTypePaymentAppCredential = credentialPaymentAppCategories.find((credential) => {
+        return credential.appId === paymentAppData.appId;
+      });
 
-    if (!eventTypePaymentAppCredential) {
-      throw new HttpError({ statusCode: 400, message: "Missing payment credentials" });
-    }
+      if (!eventTypePaymentAppCredential) {
+        throw new HttpError({ statusCode: 400, message: "Missing payment credentials" });
+      }
 
-    // Convert type of eventTypePaymentAppCredential to appId: EventTypeAppList
-    if (!booking.user) booking.user = organizerUser;
-    const payment = await handlePayment({
-      evt,
-      selectedEventType: eventType,
-      paymentAppCredentials: eventTypePaymentAppCredential as IEventTypePaymentCredentialType,
-      booking,
-      bookerName: fullName,
-      bookerEmail,
-      bookerPhoneNumber,
-      isDryRun,
-    });
-    const subscriberOptionsPaymentInitiated: GetSubscriberOptions = {
-      userId: triggerForUser ? organizerUser.id : null,
-      eventTypeId,
-      triggerEvent: WebhookTriggerEvents.BOOKING_PAYMENT_INITIATED,
-      teamId,
-      orgId,
-      oAuthClientId: platformClientId,
-    };
-    await handleWebhookTrigger({
-      subscriberOptions: subscriberOptionsPaymentInitiated,
-      eventTrigger: WebhookTriggerEvents.BOOKING_PAYMENT_INITIATED,
-      webhookData: {
-        ...webhookData,
+      // Convert type of eventTypePaymentAppCredential to appId: EventTypeAppList
+      if (!booking.user) booking.user = organizerUser;
+      const payment = await handlePayment({
+        evt,
+        selectedEventType: eventType,
+        paymentAppCredentials: eventTypePaymentAppCredential as IEventTypePaymentCredentialType,
+        booking,
+        bookerName: fullName,
+        bookerEmail,
+        bookerPhoneNumber,
+        isDryRun,
+      });
+
+      // Legacy payment app handling logic
+      const subscriberOptionsPaymentInitiated: GetSubscriberOptions = {
+        userId: triggerForUser ? organizerUser.id : null,
+        eventTypeId,
+        triggerEvent: WebhookTriggerEvents.BOOKING_PAYMENT_INITIATED,
+        teamId,
+        orgId,
+        oAuthClientId: platformClientId,
+      };
+      await handleWebhookTrigger({
+        subscriberOptions: subscriberOptionsPaymentInitiated,
+        eventTrigger: WebhookTriggerEvents.BOOKING_PAYMENT_INITIATED,
+        webhookData: {
+          ...webhookData,
+          paymentId: payment?.id,
+        },
+        isDryRun,
+      });
+
+      // TODO: Refactor better so this booking object is not passed
+      // all around and instead the individual fields are sent as args.
+      const bookingResponse = {
+        ...booking,
+        user: {
+          ...booking.user,
+          email: null,
+        },
+        videoCallUrl: metadata?.videoCallUrl,
+        // Ensure seatReferenceUid is properly typed as string | null
+        seatReferenceUid: evt.attendeeSeatId,
+      };
+
+      return {
+        ...bookingResponse,
+        ...luckyUserResponse,
+        message: "Payment required",
+        paymentRequired: true,
+        paymentUid: payment?.uid,
         paymentId: payment?.id,
-      },
-      isDryRun,
-    });
-
-    // TODO: Refactor better so this booking object is not passed
-    // all around and instead the individual fields are sent as args.
-    const bookingResponse = {
-      ...booking,
-      user: {
-        ...booking.user,
-        email: null,
-      },
-      videoCallUrl: metadata?.videoCallUrl,
-      // Ensure seatReferenceUid is properly typed as string | null
-      seatReferenceUid: evt.attendeeSeatId,
-    };
-
-    return {
-      ...bookingResponse,
-      ...luckyUserResponse,
-      message: "Payment required",
-      paymentRequired: true,
-      paymentUid: payment?.uid,
-      paymentId: payment?.id,
-      isDryRun,
-      ...(isDryRun ? { troubleshooterData } : {}),
-    };
+        isDryRun,
+        ...(isDryRun ? { troubleshooterData } : {}),
+      };
+    }
   }
 
   loggerWithEventDetails.debug(`Booking ${organizerUser.username} completed`);
@@ -2146,9 +2211,12 @@ async function handler(
   }
 
   try {
-    const hashedLinkService = new HashedLinkService();
     if (hasHashedBookingLink && reqBody.hashedLink && !isDryRun) {
-      await hashedLinkService.validateAndIncrementUsage(reqBody.hashedLink as string);
+      await prisma.hashedLink.delete({
+        where: {
+          link: reqBody.hashedLink as string,
+        },
+      });
     }
   } catch (error) {
     loggerWithEventDetails.error("Error while updating hashed link", JSON.stringify({ error }));
@@ -2205,22 +2273,42 @@ async function handler(
     });
   }
 
-  try {
-    await scheduleWorkflowReminders({
-      workflows,
-      smsReminderNumber: smsReminderNumber || null,
-      calendarEvent: evtWithMetadata,
-      isNotConfirmed: rescheduleUid ? false : !isConfirmedByDefault,
-      isRescheduleEvent: !!rescheduleUid,
-      isFirstRecurringEvent: input.bookingData.allRecurringDates
-        ? input.bookingData.isFirstRecurringSlot
-        : undefined,
-      hideBranding: !!eventType.owner?.hideBranding,
-      seatReferenceUid: evt.attendeeSeatId,
-      isDryRun,
-    });
-  } catch (error) {
-    loggerWithEventDetails.error("Error while scheduling workflow reminders", JSON.stringify({ error }));
+  // ✅ CRITICAL FIX: Only schedule workflow reminders if NOT a paid event waiting for payment
+  const isPaidEventPendingPayment =
+    (paymentAppData.enabled && paymentAppData.price > 0 && !booking?.paid) || // Legacy payment apps
+    (eventType.requiresPayment &&
+      eventType.consultationPrice &&
+      eventType.consultationPrice > 0 &&
+      !booking?.paid); // New consultation fee system
+
+  if (!isPaidEventPendingPayment) {
+    try {
+      await scheduleWorkflowReminders({
+        workflows,
+        smsReminderNumber: smsReminderNumber || null,
+        calendarEvent: evtWithMetadata,
+        isNotConfirmed: rescheduleUid ? false : !isConfirmedByDefault,
+        isRescheduleEvent: !!rescheduleUid,
+        isFirstRecurringEvent: input.bookingData.allRecurringDates
+          ? input.bookingData.isFirstRecurringSlot
+          : undefined,
+        hideBranding: !!eventType.owner?.hideBranding,
+        seatReferenceUid: evt.attendeeSeatId,
+        isDryRun,
+      });
+    } catch (error) {
+      loggerWithEventDetails.error("Error while scheduling workflow reminders", JSON.stringify({ error }));
+    }
+  } else {
+    loggerWithEventDetails.info(
+      "🔒 Skipping workflow reminder scheduling for paid event pending payment",
+      safeStringify({
+        bookingId: booking?.id,
+        paymentEnabled: paymentAppData.enabled,
+        paymentPrice: paymentAppData.price,
+        bookingPaid: booking?.paid,
+      })
+    );
   }
 
   try {

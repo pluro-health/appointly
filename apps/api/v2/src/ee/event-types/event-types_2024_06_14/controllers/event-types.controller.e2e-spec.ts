@@ -1333,8 +1333,8 @@ describe("Event types Endpoints", () => {
         isDefault: true,
         type: "phone",
         slug: "attendeePhoneNumber",
-        required: false,
-        hidden: true,
+        required: true,
+        hidden: false,
       },
       {
         isDefault: true,
@@ -1758,9 +1758,9 @@ describe("Event types Endpoints", () => {
             },
             {
               disableOnPrefill: false,
-              hidden: true,
+              hidden: false,
               isDefault: true,
-              required: false,
+              required: true,
               slug: "attendeePhoneNumber",
               type: "phone",
             },

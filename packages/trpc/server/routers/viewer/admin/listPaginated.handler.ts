@@ -74,6 +74,13 @@ const listPaginatedHandler = async ({ input }: GetOptions) => {
         },
       },
       whitelistWorkflows: true,
+      center: {
+        select: {
+          id: true,
+          name: true,
+          address: true,
+        },
+      },
     },
   });
 

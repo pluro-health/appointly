@@ -11,14 +11,14 @@ import "@calcom/dayjs/locales";
 import { Dialog } from "@calcom/features/components/controlled-dialog";
 import { MeetingSessionDetailsDialog } from "@calcom/features/ee/video/MeetingSessionDetailsDialog";
 import ViewRecordingsDialog from "@calcom/features/ee/video/ViewRecordingsDialog";
-import { formatTime } from "@calcom/lib/dayjs";
+import { formatTime, formatToLocalizedDate, formatToLocalizedTime } from "@calcom/lib/dayjs";
 import { getPaymentAppData } from "@calcom/lib/getPaymentAppData";
 import { useCopy } from "@calcom/lib/hooks/useCopy";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { useGetTheme } from "@calcom/lib/hooks/useTheme";
 import isSmsCalEmail from "@calcom/lib/isSmsCalEmail";
 import { getEveryFreqFor } from "@calcom/lib/recurringStrings";
-import { BookingStatus } from "@calcom/prisma/enums";
+import { BookingStatus, SchedulingType, AppointlyRefundStatus } from "@calcom/prisma/enums";
 import { bookingMetadataSchema } from "@calcom/prisma/zod-utils";
 import type { RouterInputs, RouterOutputs } from "@calcom/trpc/react";
 import { trpc } from "@calcom/trpc/react";
@@ -38,11 +38,11 @@ import {
   DropdownMenuTrigger,
   DropdownMenuPortal,
 } from "@calcom/ui/components/dropdown";
-import { TextAreaField } from "@calcom/ui/components/form";
+import { TextAreaField, Label } from "@calcom/ui/components/form";
 import { Icon } from "@calcom/ui/components/icon";
 import { MeetingTimeInTimezones } from "@calcom/ui/components/popover";
-import { TableActions } from "@calcom/ui/components/table";
 import type { ActionType } from "@calcom/ui/components/table";
+import { TableActions } from "@calcom/ui/components/table";
 import { showToast } from "@calcom/ui/components/toast";
 import { Tooltip } from "@calcom/ui/components/tooltip";
 
@@ -54,17 +54,6 @@ import { EditLocationDialog } from "@components/dialog/EditLocationDialog";
 import { ReassignDialog } from "@components/dialog/ReassignDialog";
 import { RerouteDialog } from "@components/dialog/RerouteDialog";
 import { RescheduleDialog } from "@components/dialog/RescheduleDialog";
-
-import {
-  getPendingActions,
-  getCancelEventAction,
-  getEditEventActions,
-  getAfterEventActions,
-  shouldShowPendingActions,
-  shouldShowEditActions,
-  shouldShowRecurringCancelAction,
-  type BookingActionContext,
-} from "./bookingActions";
 
 type BookingListingStatus = RouterInputs["viewer"]["bookings"]["get"]["filters"]["status"];
 
@@ -132,6 +121,9 @@ function BookingListItem(booking: BookingItemProps) {
   const [viewRecordingsDialogIsOpen, setViewRecordingsDialogIsOpen] = useState<boolean>(false);
   const [meetingSessionDetailsDialogIsOpen, setMeetingSessionDetailsDialogIsOpen] = useState<boolean>(false);
   const [isNoShowDialogOpen, setIsNoShowDialogOpen] = useState<boolean>(false);
+  const [isOwnerCancelDialogOpen, setIsOwnerCancelDialogOpen] = useState<boolean>(false);
+  const [ownerCancelReason, setOwnerCancelReason] = useState<string>("");
+  const [ownerCancelLoading, setOwnerCancelLoading] = useState<boolean>(false);
   const cardCharged = booking?.payment[0]?.success;
 
   const attendeeList = booking.attendees.map((attendee) => {
@@ -228,46 +220,190 @@ function BookingListItem(booking: BookingItemProps) {
     return booking.seatsReferences[0].referenceUid;
   };
 
-  const actionContext: BookingActionContext = {
-    booking,
-    isUpcoming,
-    isOngoing,
-    isBookingInPast,
-    isCancelled,
-    isConfirmed,
-    isRejected,
-    isPending,
-    isRescheduled,
-    isRecurring,
-    isTabRecurring,
-    isTabUnconfirmed,
-    isBookingFromRoutingForm,
-    isDisabledCancelling,
-    isDisabledRescheduling,
-    isCalVideoLocation:
-      !booking.location ||
-      booking.location === "integrations:daily" ||
-      (typeof booking.location === "string" && booking.location.trim() === ""),
-    showPendingPayment: paymentAppData.enabled && booking.payment.length && !booking.paid,
-    cardCharged,
-    attendeeList,
-    getSeatReferenceUid,
-    t,
-  } as BookingActionContext;
+  // Check if current user is the event owner
+  const isEventOwner = booking.user?.id === booking.loggedInUser.userId;
 
-  const basePendingActions = getPendingActions(actionContext);
-  const pendingActions: ActionType[] = basePendingActions.map((action) => ({
-    ...action,
-    onClick:
-      action.id === "reject"
-        ? () => setRejectionDialogIsOpen(true)
-        : action.id === "confirm"
-        ? () => bookingConfirm(true)
-        : undefined,
-    disabled: action.disabled || mutation.isPending,
-  })) as ActionType[];
+  // Check if booking has Easebuzz payment
+  const hasEasebuzzPayment = !!(booking as any).easebuzzPayment;
 
-  const cancelEventAction = getCancelEventAction(actionContext);
+  const pendingActions: ActionType[] = [
+    {
+      id: "reject",
+      label: (isTabRecurring || isTabUnconfirmed) && isRecurring ? t("reject_all") : t("reject"),
+      onClick: () => {
+        setRejectionDialogIsOpen(true);
+      },
+      icon: "ban",
+      disabled: mutation.isPending,
+    },
+    // For bookings with payment, only confirm if the booking is paid for
+    ...((isPending && !paymentAppData.enabled) ||
+    (paymentAppData.enabled && !!paymentAppData.price && booking.paid)
+      ? [
+          {
+            id: "confirm",
+            bookingId: booking.id,
+            label: (isTabRecurring || isTabUnconfirmed) && isRecurring ? t("confirm_all") : t("confirm"),
+            onClick: () => {
+              bookingConfirm(true);
+            },
+            icon: "check" as const,
+            disabled: mutation.isPending,
+          },
+        ]
+      : []),
+  ];
+
+  const editBookingActions: ActionType[] = [
+    ...(isBookingInPast && !booking.eventType.allowReschedulingPastBookings
+      ? []
+      : [
+          {
+            id: "reschedule",
+            icon: "clock" as const,
+            label: t("reschedule_booking"),
+            href: `/reschedule/${booking.uid}${
+              booking.seatsReferences.length ? `?seatReferenceUid=${getSeatReferenceUid()}` : ""
+            }`,
+          },
+          {
+            id: "reschedule_request",
+            icon: "send" as const,
+            iconClassName: "rotate-45 w-[16px] -translate-x-0.5 ",
+            label: t("send_reschedule_request"),
+            onClick: () => {
+              setIsOpenRescheduleDialog(true);
+            },
+          },
+        ]),
+    ...(isEventOwner && hasEasebuzzPayment && !isCancelled && isUpcoming
+      ? [
+          {
+            id: "owner_cancel",
+            label: t("cancel_event_with_refund"),
+            onClick: () => {
+              setIsOwnerCancelDialogOpen(true);
+            },
+            icon: "circle-x" as const,
+          },
+        ]
+      : []),
+    ...(isBookingFromRoutingForm
+      ? [
+          {
+            id: "reroute",
+            label: t("reroute"),
+            onClick: () => {
+              setRerouteDialogIsOpen(true);
+            },
+            icon: "waypoints" as const,
+          },
+        ]
+      : []),
+    {
+      id: "change_location",
+      label: t("edit_location"),
+      onClick: () => {
+        setIsOpenLocationDialog(true);
+      },
+      icon: "map-pin" as const,
+    },
+    ...(booking.eventType?.disableGuests
+      ? []
+      : [
+          {
+            id: "add_members",
+            label: t("additional_guests"),
+            onClick: () => {
+              setIsOpenAddGuestsDialog(true);
+            },
+            icon: "user-plus" as const,
+          },
+        ]),
+  ];
+
+  if (booking.eventType.schedulingType === SchedulingType.ROUND_ROBIN) {
+    editBookingActions.push({
+      id: "reassign ",
+      label: t("reassign"),
+      onClick: () => {
+        setIsOpenReassignDialog(true);
+      },
+      icon: "users" as const,
+    });
+  }
+
+  if (isBookingInPast || isOngoing) {
+    editBookingActions.push({
+      id: "no_show",
+      label:
+        attendeeList.length === 1 && attendeeList[0].noShow ? t("unmark_as_no_show") : t("mark_as_no_show"),
+      onClick: () => {
+        // If there's only one attendee, mark them as no-show directly without showing the dialog
+        if (attendeeList.length === 1) {
+          const attendee = attendeeList[0];
+          noShowMutation.mutate({
+            bookingUid: booking.uid,
+            attendees: [{ email: attendee.email, noShow: !attendee.noShow }],
+          });
+          return;
+        }
+
+        setIsNoShowDialogOpen(true);
+      },
+      icon: attendeeList.length === 1 && attendeeList[0].noShow ? "eye" : ("eye-off" as const),
+    });
+  }
+
+  let bookedActions: ActionType[] = [
+    ...(!isEventOwner || !hasEasebuzzPayment || isCancelled || !isUpcoming
+      ? [
+          {
+            id: "cancel",
+            label: isTabRecurring && isRecurring ? t("cancel_all_remaining") : t("cancel_event"),
+            href: `/booking/${booking.uid}?cancel=true${
+              isTabRecurring && isRecurring ? "&allRemainingBookings=true" : ""
+            }${booking.seatsReferences.length ? `&seatReferenceUid=${getSeatReferenceUid()}` : ""}`,
+            icon: "x" as const,
+          },
+        ]
+      : []),
+    {
+      id: "edit_booking",
+      label: t("edit"),
+      actions: editBookingActions,
+    },
+  ];
+
+  const chargeCardActions: ActionType[] = [
+    {
+      id: "charge_card",
+      label: cardCharged ? t("no_show_fee_charged") : t("collect_no_show_fee"),
+      disabled: cardCharged,
+      onClick: () => {
+        setChargeCardDialogIsOpen(true);
+      },
+      icon: "credit-card" as const,
+    },
+  ];
+
+  if (isTabRecurring && isRecurring) {
+    bookedActions = bookedActions.filter((action) => action.id !== "edit_booking");
+  }
+
+  if (isDisabledCancelling || (isBookingInPast && isPending && !isConfirmed)) {
+    bookedActions = bookedActions.filter((action) => action.id !== "cancel");
+  }
+
+  if (isDisabledRescheduling) {
+    bookedActions.forEach((action) => {
+      if (action.id === "edit_booking") {
+        action.actions = action.actions?.filter(
+          ({ id }) => id !== "reschedule" && id !== "reschedule_request"
+        );
+      }
+    });
+  }
 
   const RequestSentMessage = () => {
     return (
@@ -346,58 +482,76 @@ function BookingListItem(booking: BookingItemProps) {
 
   const title = booking.title;
 
+  const showViewRecordingsButton = !!(booking.isRecorded && isBookingInPast && isConfirmed);
+  const showCheckRecordingButton =
+    isBookingInPast &&
+    isConfirmed &&
+    !booking.isRecorded &&
+    (!booking.location || booking.location === "integrations:daily" || booking?.location?.trim() === "");
+
   const isCalVideoLocation =
-    !booking.location ||
-    booking.location === "integrations:daily" ||
-    (typeof booking.location === "string" && booking.location.trim() === "");
+    !booking.location || booking.location === "integrations:daily" || booking?.location?.trim() === "";
+
+  const videoOptionsActions: ActionType[] = [
+    {
+      id: "view_recordings",
+      label: showCheckRecordingButton ? t("check_for_recordings") : t("view_recordings"),
+      onClick: () => {
+        setViewRecordingsDialogIsOpen(true);
+      },
+      color: showCheckRecordingButton ? "secondary" : "primary",
+      disabled: mutation.isPending,
+    },
+    {
+      id: "meeting_session_details",
+      label: t("get_meeting_session_details"),
+      onClick: () => {
+        setMeetingSessionDetailsDialogIsOpen(true);
+      },
+      disabled: mutation.isPending,
+    },
+  ];
 
   const showPendingPayment = paymentAppData.enabled && booking.payment.length && !booking.paid;
 
-  const baseEditEventActions = getEditEventActions(actionContext);
-  const editEventActions: ActionType[] = baseEditEventActions.map((action) => ({
-    ...action,
-    onClick:
-      action.id === "reschedule_request"
-        ? () => setIsOpenRescheduleDialog(true)
-        : action.id === "reroute"
-        ? () => setRerouteDialogIsOpen(true)
-        : action.id === "change_location"
-        ? () => setIsOpenLocationDialog(true)
-        : action.id === "add_members"
-        ? () => setIsOpenAddGuestsDialog(true)
-        : action.id === "reassign"
-        ? () => setIsOpenReassignDialog(true)
-        : undefined,
-  })) as ActionType[];
+  const handleOwnerCancel = async () => {
+    if (!ownerCancelReason.trim()) {
+      showToast(t("cancellation_reason_required"), "error");
+      return;
+    }
 
-  const baseAfterEventActions = getAfterEventActions(actionContext);
-  const afterEventActions: ActionType[] = baseAfterEventActions.map((action) => ({
-    ...action,
-    onClick:
-      action.id === "view_recordings"
-        ? () => setViewRecordingsDialogIsOpen(true)
-        : action.id === "meeting_session_details"
-        ? () => setMeetingSessionDetailsDialogIsOpen(true)
-        : action.id === "charge_card"
-        ? () => setChargeCardDialogIsOpen(true)
-        : action.id === "no_show"
-        ? () => {
-            if (attendeeList.length === 1) {
-              const attendee = attendeeList[0];
-              noShowMutation.mutate({
-                bookingUid: booking.uid,
-                attendees: [{ email: attendee.email, noShow: !attendee.noShow }],
-              });
-              return;
-            }
-            setIsNoShowDialogOpen(true);
-          }
-        : undefined,
-    disabled:
-      action.disabled ||
-      (action.id === "no_show" && !(isBookingInPast || isOngoing)) ||
-      (action.id === "view_recordings" && !booking.isRecorded),
-  })) as ActionType[];
+    setOwnerCancelLoading(true);
+    try {
+      const response = await fetch(`/api/bookings/${booking.id}/owner-cancel`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          reason: ownerCancelReason,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to cancel booking");
+      }
+
+      const data = await response.json();
+
+      showToast(
+        data.refund?.success ? t("booking_cancelled_refund_processed") : t("booking_cancelled_successfully"),
+        "success"
+      );
+      setIsOwnerCancelDialogOpen(false);
+      setOwnerCancelReason("");
+      utils.viewer.bookings.invalidate();
+    } catch (error: any) {
+      showToast(error.message || t("something_went_wrong"), "error");
+    } finally {
+      setOwnerCancelLoading(false);
+    }
+  };
 
   return (
     <>
@@ -489,6 +643,83 @@ function BookingListItem(booking: BookingItemProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {isOwnerCancelDialogOpen && (
+        <Dialog open={isOwnerCancelDialogOpen} onOpenChange={setIsOwnerCancelDialogOpen}>
+          <DialogContent enableOverflow>
+            <div className="border-b border-slate-200 px-7 pb-4 pt-7">
+              <div className="flex items-center gap-3">
+                <div className="bg-subtle flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full">
+                  <Icon name="circle-x" className="h-6 w-6" />
+                </div>
+                <h2 className="text-xl font-semibold tracking-tight text-slate-900">{t("cancel_booking")}</h2>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="space-y-7 p-7">
+              <div className="flex flex-col gap-2 rounded-xl border border-slate-100 bg-white/95 p-5 shadow-sm">
+                <h4 className="text-lg font-medium text-slate-800">{booking.title}</h4>
+                <div className="flex flex-col gap-0.5 text-sm text-gray-600">
+                  <div className="flex items-center gap-2">
+                    <Icon name="calendar" className="h-4 w-4" />
+                    <span>{formatToLocalizedDate(new Date(booking.startTime), "en")}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Icon name="clock" className="h-4 w-4" />
+                    <span>
+                      {formatToLocalizedTime(new Date(booking.startTime), "en")} –{" "}
+                      {formatToLocalizedTime(new Date(booking.endTime), "en")}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              {/* Refund Warning */}
+              <div className="flex items-start gap-2 rounded-lg border border-yellow-200 bg-yellow-50 p-4 shadow-sm">
+                <Icon name="triangle-alert" className="mt-0.5 h-5 w-5 text-yellow-500" />
+                <div>
+                  <h3 className="text-sm font-medium text-yellow-800">{t("full_refund_processing")}</h3>
+                  <p className="mt-1 text-sm text-yellow-700">{t("owner_cancel_refund_description")}</p>
+                </div>
+              </div>
+
+              {/* Cancellation Reason */}
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="cancel-reason" className="font-medium text-gray-800">
+                  {t("cancellation_reason")} <span className="text-red-400">*</span>
+                </Label>
+                <TextAreaField
+                  id="cancel-reason"
+                  name="cancelReason"
+                  value={ownerCancelReason}
+                  onChange={(e) => setOwnerCancelReason(e.target.value)}
+                  placeholder="Please provide a reason for cancellation..."
+                  rows={3}
+                  required
+                  className="w-full rounded-md border border-yellow-300 bg-white px-3 py-2 text-sm text-gray-800 shadow-sm transition-all duration-150 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-200"
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <DialogFooter className="flex justify-center gap-3 rounded-b-2xl border-t border-slate-200 bg-slate-50 px-7 py-4">
+              <DialogClose color="secondary">{t("cancel")}</DialogClose>
+              <Button
+                color="destructive"
+                onClick={handleOwnerCancel}
+                loading={ownerCancelLoading}
+                disabled={!ownerCancelReason.trim() || ownerCancelLoading}
+                className="flex h-10 min-w-[130px] items-center justify-center rounded-md text-sm font-medium"
+                style={
+                  !ownerCancelReason.trim() || ownerCancelLoading
+                    ? { opacity: 0.65, cursor: "not-allowed", filter: "grayscale(0.2)" }
+                    : {}
+                }>
+                Cancel Booking
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
       <div
         data-testid="booking-item"
         data-today={String(booking.isToday)}
@@ -515,9 +746,7 @@ function BookingListItem(booking: BookingItemProps) {
                   </div>
                   {!isPending && (
                     <div>
-                      {(provider?.label ||
-                        (typeof locationToDisplay === "string" &&
-                          locationToDisplay?.startsWith("https://"))) &&
+                      {(provider?.label || locationToDisplay?.startsWith("https://")) &&
                         locationToDisplay.startsWith("http") && (
                           <a
                             href={locationToDisplay}
@@ -635,84 +864,32 @@ function BookingListItem(booking: BookingItemProps) {
             </Link>
           </div>
           <div className="flex w-full flex-col flex-wrap items-end justify-end space-x-2 space-y-2 py-4 pl-4 text-right text-sm font-medium ltr:pr-4 rtl:pl-4 sm:flex-row sm:flex-nowrap sm:items-start sm:space-y-0 sm:pl-0">
-            {shouldShowPendingActions(actionContext) && <TableActions actions={pendingActions} />}
-            {shouldShowEditActions(actionContext) && (
-              <Dropdown>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    type="button"
-                    color="secondary"
-                    variant="icon"
-                    StartIcon="ellipsis"
-                    data-testid="booking-actions-dropdown"
-                  />
-                </DropdownMenuTrigger>
-                <DropdownMenuPortal>
-                  <DropdownMenuContent>
-                    <DropdownMenuLabel className="px-2 pb-1 pt-1.5">{t("edit_event")}</DropdownMenuLabel>
-                    {editEventActions.map((action) => (
-                      <DropdownMenuItem className="rounded-lg" key={action.id} disabled={action.disabled}>
-                        <DropdownItem
-                          type="button"
-                          color={action.color}
-                          StartIcon={action.icon}
-                          href={action.href}
-                          disabled={action.disabled}
-                          onClick={action.onClick}
-                          data-bookingid={action.bookingId}
-                          data-testid={action.id}
-                          className={action.disabled ? "text-muted" : undefined}>
-                          {action.label}
-                        </DropdownItem>
-                      </DropdownMenuItem>
-                    ))}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuLabel className="px-2 pb-1 pt-1.5">{t("after_event")}</DropdownMenuLabel>
-                    {afterEventActions.map((action) => (
-                      <DropdownMenuItem className="rounded-lg" key={action.id} disabled={action.disabled}>
-                        <DropdownItem
-                          type="button"
-                          color={action.color}
-                          StartIcon={action.icon}
-                          href={action.href}
-                          onClick={action.onClick}
-                          disabled={action.disabled}
-                          data-bookingid={action.bookingId}
-                          data-testid={action.id}
-                          className={action.disabled ? "text-muted" : undefined}>
-                          {action.label}
-                        </DropdownItem>
-                      </DropdownMenuItem>
-                    ))}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      className="rounded-lg"
-                      key={cancelEventAction.id}
-                      disabled={cancelEventAction.disabled}>
-                      <DropdownItem
-                        type="button"
-                        color={cancelEventAction.color}
-                        StartIcon={cancelEventAction.icon}
-                        href={cancelEventAction.href}
-                        onClick={cancelEventAction.onClick}
-                        disabled={cancelEventAction.disabled}
-                        data-bookingid={cancelEventAction.bookingId}
-                        data-testid={cancelEventAction.id}
-                        className={cancelEventAction.disabled ? "text-muted" : undefined}>
-                        {cancelEventAction.label}
-                      </DropdownItem>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenuPortal>
-              </Dropdown>
+            {isUpcoming && !isCancelled ? (
+              <>
+                {isPending && <TableActions actions={pendingActions} />}
+                {isConfirmed && <TableActions actions={bookedActions} />}
+                {isRejected && <div className="text-subtle text-sm">{t("rejected")}</div>}
+              </>
+            ) : null}
+            {isBookingInPast && isPending && !isConfirmed ? <TableActions actions={bookedActions} /> : null}
+            {isBookingInPast && isConfirmed ? <TableActions actions={bookedActions} /> : null}
+            {isCalVideoLocation && (
+              <TableActions
+                actions={[{ id: "video_options", label: t("video_options"), actions: videoOptionsActions }]}
+              />
             )}
-            {shouldShowRecurringCancelAction(actionContext) && <TableActions actions={[cancelEventAction]} />}
-            {isRejected && <div className="text-subtle text-sm">{t("rejected")}</div>}
             {isCancelled && booking.rescheduled && (
               <div className="hidden h-full items-center md:flex">
                 <RequestSentMessage />
               </div>
             )}
+            {booking.status === "ACCEPTED" &&
+              booking.paid &&
+              booking.payment[0]?.paymentOption === "HOLD" && (
+                <div className="ml-2">
+                  <TableActions actions={chargeCardActions} />
+                </div>
+              )}
           </div>
         </div>
         <BookingItemBadges
@@ -775,13 +952,30 @@ const BookingItemBadges = ({
       {booking?.assignmentReason.length > 0 && (
         <AssignmentReasonTooltip assignmentReason={booking.assignmentReason[0]} />
       )}
-      {booking.paid && !booking.payment[0] ? (
+      {booking.paid && !booking.payment[0] && !booking.easebuzzPayment ? (
         <Badge className="ltr:mr-2 rtl:ml-2" variant="orange">
           {t("error_collecting_card")}
         </Badge>
-      ) : booking.paid ? (
+      ) : booking.paid && booking.appointlyRefundStatus !== AppointlyRefundStatus.PROCESSED ? (
         <Badge className="ltr:mr-2 rtl:ml-2" variant="green" data-testid="paid_badge">
-          {booking.payment[0].paymentOption === "HOLD" ? t("card_held") : t("paid")}
+          {/* Handle both standard Cal.com payments and Easebuzz payments */}
+          {booking.payment[0]?.paymentOption === "HOLD" ? t("card_held") : t("paid")}
+        </Badge>
+      ) : null}
+      {booking.appointlyRefundStatus &&
+      booking.appointlyRefundStatus !== AppointlyRefundStatus.NOT_APPLICABLE &&
+      booking.status === BookingStatus.CANCELLED ? (
+        <Badge
+          className="ltr:mr-2 rtl:ml-2"
+          variant={
+            booking.appointlyRefundStatus === AppointlyRefundStatus.PROCESSED
+              ? "green"
+              : booking.appointlyRefundStatus === AppointlyRefundStatus.PENDING
+              ? "orange"
+              : "red"
+          }
+          data-testid="refund_status_badge">
+          {t("Refund")}: {booking.appointlyRefundStatus}
         </Badge>
       ) : null}
       {recurringDates !== undefined && (

@@ -18,7 +18,12 @@ import { Badge } from "@calcom/ui/components/badge";
 export type EventTypeDescriptionProps = {
   eventType: Pick<
     z.infer<typeof EventTypeModel>,
-    Exclude<keyof typeof baseEventTypeSelect, "recurringEvent"> | "metadata" | "seatsPerTimeSlot"
+    | Exclude<keyof typeof baseEventTypeSelect, "recurringEvent">
+    | "metadata"
+    | "seatsPerTimeSlot"
+    | "consultationPrice"
+    | "paymentCurrency"
+    | "requiresPayment"
   > & {
     descriptionAsSafeHTML?: string | null;
     recurringEvent: Prisma.JsonValue;
@@ -94,7 +99,24 @@ export const EventTypeDescription = ({
               </Badge>
             </li>
           )}
-          {paymentAppData.enabled && (
+          {/* Show consultation fee if requiresPayment is enabled */}
+          {eventType.requiresPayment && eventType.consultationPrice && (
+            <li>
+              <Badge
+                variant="gray"
+                customStartIcon={
+                  <PriceIcon currency={eventType.paymentCurrency || "INR"} className="h-3 w-3 stroke-[3px]" />
+                }>
+                <Price
+                  currency={eventType.paymentCurrency || "INR"}
+                  price={eventType.consultationPrice}
+                  displayAlternateSymbol={false}
+                />
+              </Badge>
+            </li>
+          )}
+          {/* Show legacy payment app data if enabled and no consultation price */}
+          {paymentAppData.enabled && !eventType.requiresPayment && (
             <li>
               <Badge
                 variant="gray"
