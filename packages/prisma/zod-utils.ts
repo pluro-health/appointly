@@ -750,4 +750,7 @@ export const serviceAccountKeySchema = z
 
 export type TServiceAccountKeySchema = z.infer<typeof serviceAccountKeySchema>;
 
+// Add easebuzz response data schema
+export const easebuzzResponseDataSchema = z.record(z.any()).nullable();
+
 export const rrSegmentQueryValueSchema = zodAttributesQueryValue.nullish();

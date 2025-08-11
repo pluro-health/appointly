@@ -72,15 +72,16 @@ model CalVideoSettings {
   eventTypeId Int       @id
   eventType   EventType @relation(fields: [eventTypeId], references: [id], onDelete: Cascade)
 
-  disableRecordingForOrganizer         Boolean  @default(false)
-  disableRecordingForGuests            Boolean  @default(false)
-  enableAutomaticTranscription         Boolean  @default(false)
-  enableAutomaticRecordingForOrganizer Boolean  @default(false)
+  disableRecordingForOrganizer         Boolean @default(false)
+  disableRecordingForGuests            Boolean @default(false)
+  enableAutomaticTranscription         Boolean @default(false)
+  enableAutomaticRecordingForOrganizer Boolean @default(false)
   redirectUrlOnExit                    String?
-  disableTranscriptionForGuests        Boolean  @default(false)
-  disableTranscriptionForOrganizer     Boolean  @default(false)
-  createdAt                            DateTime @default(now())
-  updatedAt                            DateTime @updatedAt
+  disableTranscriptionForGuests        Boolean @default(false)
+  disableTranscriptionForOrganizer     Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model EventType {
@@ -357,13 +358,13 @@ model User {
   // the location where the events will end up
   destinationCalendar DestinationCalendar?
   // participate in dynamic group booking or not
-  allowDynamicBooking Boolean?             @default(true)
+  allowDynamicBooking Boolean?             @default(false)
 
   // participate in SEO indexing or not
-  allowSEOIndexing Boolean? @default(true)
+  allowSEOIndexing Boolean? @default(false)
 
   // receive monthly digest email for teams or not
-  receiveMonthlyDigestEmail Boolean? @default(true)
+  receiveMonthlyDigestEmail Boolean? @default(false)
 
   /// @zod.custom(imports.userMetadata)
   metadata             Json?
@@ -423,6 +424,10 @@ model User {
   whitelistWorkflows             Boolean                       @default(false)
   sentInvitations                InvitationToken[]             @relation("InvitationToken_invitedBy")
 
+  // Medical center relationship
+  centerId Int?
+  center   Center? @relation(fields: [centerId], references: [id], onDelete: SetNull)
+
   @@unique([email])
   @@unique([email, username])
   @@unique([username, organizationId])
@@ -431,6 +436,7 @@ model User {
   @@index([emailVerified])
   @@index([identityProvider])
   @@index([identityProviderId])
+  @@index([centerId])
   @@map(name: "users")
 }
 
@@ -811,6 +817,7 @@ model Booking {
   tracking                     Tracking?
   routingFormResponses         RoutingFormResponseDenormalized[]
   expenseLogs                  CreditExpenseLog[]
+  easebuzzPayments             EasebuzzPayment[]
 
   @@index([eventTypeId])
   @@index([userId])
@@ -2429,4 +2436,54 @@ model RolePermission {
   @@index([roleId])
   // TODO: come back to this with indexs.
   @@index([action])
+}
+
+model Center {
+  id                    Int       @id @default(autoincrement())
+  name                  String
+  address               String?
+  phone                 String?
+  /// @zod.custom(imports.emailSchema)
+  email                 String?
+  easebuzzSubMerchantId String?   @unique
+  isActive              Boolean   @default(true)
+  deletedAt             DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Relations
+  users            User[]
+  easebuzzPayments EasebuzzPayment[]
+
+  @@index([easebuzzSubMerchantId])
+  @@index([isActive])
+}
+
+enum EasebuzzPaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+model EasebuzzPayment {
+  id            Int                   @id @default(autoincrement())
+  bookingId     Int
+  booking       Booking               @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  centerId      Int?
+  center        Center?               @relation(fields: [centerId], references: [id], onDelete: SetNull)
+  subMerchantId String?
+  easebuzzTxnid String?               @unique
+  amount        Decimal               @db.Decimal(10, 2)
+  status        EasebuzzPaymentStatus @default(PENDING)
+  /// @zod.custom(imports.easebuzzResponseDataSchema)
+  responseData  Json?
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  @@index([bookingId])
+  @@index([centerId])
+  @@index([easebuzzTxnid])
+  @@index([status])
 }

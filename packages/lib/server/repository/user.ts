@@ -628,10 +628,11 @@ export class UserRepository {
       organizationId: number | null;
       creationSource: CreationSource;
       locked: boolean;
+      centerId?: number | null;
     }
   ) {
     const organizationIdValue = data.organizationId;
-    const { email, username, creationSource, locked, hashedPassword, ...rest } = data;
+    const { email, username, creationSource, locked, hashedPassword, centerId, center, ...rest } = data;
 
     logger.info("create user", { email, username, organizationIdValue, locked });
     const t = await getTranslation("en", "common");
@@ -671,6 +672,7 @@ export class UserRepository {
               },
             }
           : {}),
+        ...(centerId && { centerId }),
         ...rest,
       },
     });
