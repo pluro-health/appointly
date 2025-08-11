@@ -98,7 +98,7 @@ export const DailyVideoDownloadRecordingEmail = (
         <>{props.language("happy_scheduling")},</>
       </p>
       <p style={{ fontWeight: 400, lineHeight: "24px", marginTop: "0px" }}>
-        <>{props.language("the_calcom_team", { companyName: COMPANY_NAME })}</>
+        <>{props.language("the_appointly_team", { companyName: COMPANY_NAME })}</>
       </p>
     </V2BaseEmailHtml>
   );

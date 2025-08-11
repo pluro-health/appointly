@@ -1842,7 +1842,7 @@
   "fixed_round_robin": "Round robin finkoa",
   "add_one_fixed_attendee": "Gehitu parte-hartzaile finko bat eta round robin bidez txandakatu hainbat parte-hartzaileren artean",
   "calcom_is_better_with_team": "{{appName}} hobea da taldeekin",
-  "the_calcom_team": "{{companyName}} taldea",
+  "the_appointly_team": "{{companyName}} taldea",
   "add_your_team_members": "Gehitu zure taldekideak zure gertaera motetan. Erabili taldeko antolaketa guztiak sartzeko edo aurkitu pertsona egokiena round robin antolaketa erabiliz",
   "booking_limit_reached": "Gertaera mota honetarako erreserba muga gaindituta",
   "duration_limit_reached": "Gertaera mota honetarako iraupen muga gaindituta",

@@ -1842,7 +1842,7 @@
   "fixed_round_robin": "Fiksno kružno dodeljivanje",
   "add_one_fixed_attendee": "Dodajte jednog fiksnog učesnika i onda rotirajte ostale učesnike.",
   "calcom_is_better_with_team": "Aplikacija {{appName}} je još bolja uz timove",
-  "the_calcom_team": "Tim kompanije {{companyName}}",
+  "the_appointly_team": "Tim kompanije {{companyName}}",
   "add_your_team_members": "Dodajte članove vašeg tima vašim tipovima događaja. Koristite kolektivno zakazivanje da uključite svakoga ili pronađete osobu koja najviše odgovara pomoću zakazivanja kružnim dodeljivanjem.",
   "booking_limit_reached": "Dostignuta je granica zakazivanja za ovaj tip događaja",
   "duration_limit_reached": "Dostignuta je granica trajanja za ovaj tip događaja",

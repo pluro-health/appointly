@@ -1842,7 +1842,7 @@
   "fixed_round_robin": "Round-robin fixo",
   "add_one_fixed_attendee": "Adicione um participante fixo e utilize o round-robin em uma determinada quantidade de participantes.",
   "calcom_is_better_with_team": "{{appName}} é melhor com equipes",
-  "the_calcom_team": "A equipe de {{companyName}}",
+  "the_appointly_team": "A equipe de {{companyName}}",
   "add_your_team_members": "Adicione membros da sua equipe aos seus tipos de evento. Use programação coletiva para incluir todos ou encontre a pessoa mais apropriada pela programação com round-robin.",
   "booking_limit_reached": "O limite de reseva para este tipo de evento foi atingido",
   "duration_limit_reached": "O limite de duração para este tipo de evento foi atingido",

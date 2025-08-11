@@ -160,20 +160,6 @@ export const EventSetupTab = (
               </>
             )}
           </div>
-          {!isPlatform && (
-            <div className="[&_label]:my-1 [&_label]:font-normal">
-              <SettingsToggle
-                title={t("translate_description_button")}
-                checked={!!autoTranslateDescriptionEnabled}
-                onCheckedChange={(value) => {
-                  formMethods.setValue("autoTranslateDescriptionEnabled", value, { shouldDirty: true });
-                }}
-                disabled={!orgId}
-                tooltip={!orgId ? t("orgs_upgrade_to_enable_feature") : undefined}
-                data-testid="ai_translation_toggle"
-              />
-            </div>
-          )}
           {!isPlatform && interfaceLanguageOptions.length > 0 && (
             <div>
               <Skeleton
@@ -408,7 +394,7 @@ export const EventSetupTab = (
               defaultValue={eventType.locations || []}
               render={() => (
                 <Locations
-                  showAppStoreLink={true}
+                  showAppStoreLink={false}
                   isChildrenManagedEventType={isChildrenManagedEventType}
                   isManagedEventType={isManagedEventType}
                   disableLocationProp={shouldLockDisableProps("locations").disabled}

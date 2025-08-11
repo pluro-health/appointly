@@ -1,6 +1,5 @@
-import { CAL_URL, APP_NAME } from "@calcom/lib/constants";
+import { WEB_URL, APP_NAME, SUPPORT_MAIL_ADDRESS } from "@calcom/lib/constants";
 import logger from "@calcom/lib/logger";
-import { getTranslation } from "@calcom/lib/server/i18n";
 import { prisma } from "@calcom/prisma";
 
 export interface SendInvitationEmailParams {
@@ -21,51 +20,40 @@ export async function sendInvitationEmail({
   expiresInHours,
 }: SendInvitationEmailParams) {
   try {
-    // Since this function is called from API routes, we don't have access to the request context
-    // So we'll use a default locale
-    const t = await getTranslation("en", "common");
-
-    const inviteLink = `${CAL_URL}/auth/signup?token=${token}`;
+    const inviteLink = `${WEB_URL}/auth/signup?token=${token}`;
     const expiresAt = new Date(Date.now() + expiresInHours * 60 * 60 * 1000);
 
-    const emailSubject = t("invitation_email_subject", {
-      appName: APP_NAME,
-    });
+    const emailSubject = `Welcome to ${APP_NAME}! You're invited to join`;
 
     const emailBody = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #333;">You've been invited to join ${APP_NAME}</h2>
-        
-        <p>Hello,</p>
-        
-        <p>You have been invited by <strong>${
-          invitedBy.name || invitedBy.email
-        }</strong> to join ${APP_NAME}.</p>
-        
-        <p>To accept this invitation and create your account, please click the link below:</p>
-        
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${inviteLink}" 
-             style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+      <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 8px; background-color: #fafafa;">
+        <header style="text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #2C3E50; font-size: 24px;">Welcome to ${APP_NAME} 🎉</h1>
+        </header>
+
+        <p style="font-size: 16px; line-height: 1.6;">Hi there,</p>
+
+        <p style="font-size: 16px; line-height: 1.6;">
+          <strong>${
+            invitedBy.name || invitedBy.email
+          }</strong> has invited you to join <strong>${APP_NAME}</strong>.
+        </p>
+
+        <p style="font-size: 16px; line-height: 1.6;">
+          Click the button below to accept your invitation and create your account. This invitation will expire on <strong>${expiresAt.toLocaleString()}</strong>.
+        </p>
+
+        <div style="text-align: center; margin: 40px 0;">
+          <a href="${inviteLink}"
+             style="background-color: #007bff; color: #fff; text-decoration: none; padding: 14px 28px; font-size: 16px; border-radius: 5px; display: inline-block;">
             Accept Invitation
           </a>
         </div>
-        
-        <p><strong>Important:</strong></p>
-        <ul>
-          <li>This invitation will expire on ${expiresAt.toLocaleString()}</li>
-          <li>You can only use this invitation once</li>
-          <li>Make sure to use the same email address that was invited</li>
-        </ul>
-        
-        <p>If you have any questions, please contact your administrator.</p>
-        
-        <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
-        
-        <p style="color: #666; font-size: 12px;">
-          This invitation was sent from ${APP_NAME}.<br>
-          If you didn't expect this invitation, you can safely ignore this email.
-        </p>
+
+        <footer style="margin-top: 40px; border-top: 1px solid #ddd; padding-top: 20px; text-align: center; font-size: 12px; color: #999;">
+          Sent by ${APP_NAME}<br>
+          Need help? Contact us at <a href="mailto:${SUPPORT_MAIL_ADDRESS}" style="color: #007bff; text-decoration: none;">${SUPPORT_MAIL_ADDRESS}</a>
+        </footer>
       </div>
     `;
 

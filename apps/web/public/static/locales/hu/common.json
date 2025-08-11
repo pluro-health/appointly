@@ -1842,7 +1842,7 @@
   "fixed_round_robin": "Rögzített körmérkőzés",
   "add_one_fixed_attendee": "Adjon hozzá egy állandó résztvevőt, és körmérkőzést adjon hozzá több résztvevőn keresztül.",
   "calcom_is_better_with_team": "{{appName}} jobb csapatban",
-  "the_calcom_team": "A {{companyName}} csapata",
+  "the_appointly_team": "A {{companyName}} csapata",
   "add_your_team_members": "Adja hozzá csapattagjait az eseménytípusokhoz. Használjon kollektív ütemezést, hogy mindenkit bevonjon, vagy keresse meg a legmegfelelőbb személyt körmérkőzéses ütemezéssel.",
   "booking_limit_reached": "Elérte a foglalási limitet erre az eseménytípusra",
   "duration_limit_reached": "Elérte az eseménytípus időtartamának korlátját",

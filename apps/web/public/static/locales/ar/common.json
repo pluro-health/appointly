@@ -1842,7 +1842,7 @@
   "fixed_round_robin": "جدولة دوارة",
   "add_one_fixed_attendee": "أضف حاضرًا ثابتًا وجدولة دوارة عبر عدد من الحاضرين.",
   "calcom_is_better_with_team": "يعمل {{appName}} أفضل مع الفرق",
-  "the_calcom_team": "فريق {{companyName}}",
+  "the_appointly_team": "فريق {{companyName}}",
   "add_your_team_members": "أضف أعضاء فريقك إلى أنواع الأحداث الخاصة بك. استخدم الجدولة الجماعية لإدراج الجميع أو العثور على أنسب شخص باستخدام الجدولة الدوارة.",
   "booking_limit_reached": "تم الوصول إلى الحد الأقصى للحجز لهذا النوع من الأحداث",
   "duration_limit_reached": "تم الوصول إلى الحد الأقصى لمدة الحجز لهذا النوع من الأحداث",

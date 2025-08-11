@@ -1842,7 +1842,7 @@
   "fixed_round_robin": "Kiinteä round robin",
   "add_one_fixed_attendee": "Lisää yksi kiinteä osallistuja ja kierrätä round robin -tyyliin useiden osallistujien kesken",
   "calcom_is_better_with_team": "{{appName}} on parempi tiimien kanssa",
-  "the_calcom_team": "{{companyName}}-tiimi",
+  "the_appointly_team": "{{companyName}}-tiimi",
   "add_your_team_members": "Lisää tiimisi jäsenet tapahtumatyyppeihin. Käytä yhteistä ajanvarausta sisällyttääksesi kaikki tai löydä sopivin henkilö round robin -aikataulutuksella",
   "booking_limit_reached": "Tämän tapahtumatyypin varausraja on saavutettu",
   "duration_limit_reached": "Tämän tapahtumatyypin kestoraja on saavutettu",

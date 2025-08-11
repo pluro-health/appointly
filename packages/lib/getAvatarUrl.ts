@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { AVATAR_FALLBACK, CAL_URL } from "@calcom/lib/constants";
+import { AVATAR_FALLBACK, WEB_URL } from "@calcom/lib/constants";
 import type { User } from "@calcom/prisma/client";
 
 /**
@@ -14,8 +14,8 @@ export const getUserAvatarUrl = (user: Pick<User, "avatarUrl"> | undefined) => {
     if (isAbsoluteUrl) {
       return user.avatarUrl;
     } else {
-      return CAL_URL + user.avatarUrl;
+      return WEB_URL + user.avatarUrl;
     }
   }
-  return CAL_URL + AVATAR_FALLBACK;
+  return WEB_URL + AVATAR_FALLBACK;
 };

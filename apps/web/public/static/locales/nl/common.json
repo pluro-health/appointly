@@ -1842,7 +1842,7 @@
   "fixed_round_robin": "Vaste round-robin",
   "add_one_fixed_attendee": "Voeg één vaste deelnemer en round-robin toe via een aantal deelnemers.",
   "calcom_is_better_with_team": "{{appName}} is beter met teams",
-  "the_calcom_team": "Het team van {{companyName}}",
+  "the_appointly_team": "Het team van {{companyName}}",
   "add_your_team_members": "Voeg uw teamleden toe aan uw gebeurtenistypes. Gebruik collectieve planning om iedereen op te nemen of zoek de meest geschikte persoon met round robin-planning.",
   "booking_limit_reached": "Boekingslimiet voor dit gebeurtenistype is bereikt",
   "duration_limit_reached": "Duurlimiet voor dit gebeurtenistype is bereikt",

@@ -1839,7 +1839,7 @@ checksums:
     fixed_round_robin: ed66a915617997b484a8802f6250f0ab
     add_one_fixed_attendee: f6e0080c2ecec1758b8ca2525a5ceada
     calcom_is_better_with_team: acdf5507f780dee5730fee3b85308dbd
-    the_calcom_team: f27321cd4a5593f07fdc08eefb7a99eb
+    the_appointly_team: f27321cd4a5593f07fdc08eefb7a99eb
     add_your_team_members: 8304c40c36269f1c1c07744213ff65ff
     booking_limit_reached: 72ae3fbb994879f476bdfe071a4183da
     duration_limit_reached: 078ffb4e81d2d991ecd506142e3fb46c

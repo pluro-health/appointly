@@ -1842,7 +1842,7 @@
   "fixed_round_robin": "Round robin cố định",
   "add_one_fixed_attendee": "Thêm một người tham dự và round robin cố định thông qua số người tham dự.",
   "calcom_is_better_with_team": "{{appName}} tốt hơn với nhóm",
-  "the_calcom_team": "Nhóm của {{companyName}}",
+  "the_appointly_team": "Nhóm của {{companyName}}",
   "add_your_team_members": "Thêm những thành viên nhóm của bạn vào những loại sự kiện của bạn. Sử dụng lên lịch tập thể để bao gồm mọi người hoặc tìm người thích hợp nhất với chức năng lên lịch round robin.",
   "booking_limit_reached": "Đã đạt mức giới hạn đặt hẹn cho loại sự kiện này",
   "duration_limit_reached": "Đã đạt mức giới hạn thời gian cho loại sự kiện này",

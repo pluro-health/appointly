@@ -1,6 +1,6 @@
 import React from "react";
 
-import { CAL_URL, LOGO, WEBAPP_URL } from "./constants";
+import { WEB_URL, LOGO, WEBAPP_URL } from "./constants";
 
 // Ensures tw prop is typed.
 declare module "react" {
@@ -46,7 +46,7 @@ const joinMultipleNames = (names: string[] = []) => {
   return `${names.length > 0 ? `${names.join(", ")} & ${lastName}` : lastName}`;
 };
 
-const makeAbsoluteUrl = (url: string) => (/^https?:\/\//.test(url) ? url : `${CAL_URL}${url}`);
+const makeAbsoluteUrl = (url: string) => (/^https?:\/\//.test(url) ? url : `${WEB_URL}${url}`);
 
 /**
  * Test urls:

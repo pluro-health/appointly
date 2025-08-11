@@ -1842,7 +1842,7 @@
   "fixed_round_robin": "Sabit round robin",
   "add_one_fixed_attendee": "Bir sabit iştirakçı əlavə edin və bir neçə iştirakçı arasında round robin edin.",
   "calcom_is_better_with_team": "{{appName}} komandalarla daha yaxşıdır",
-  "the_calcom_team": "{{companyName}} komandası",
+  "the_appointly_team": "{{companyName}} komandası",
   "add_your_team_members": "Komanda üzvlərinizi tədbir növlərinizə əlavə edin. Hər kəsi daxil etmək üçün kollektiv planlaşdırmadan istifadə edin və ya round robin planlaşdırma ilə ən uyğun şəxsi tapın.",
   "booking_limit_reached": "Bu tədbir növü üçün sifariş limiti çatıb",
   "duration_limit_reached": "Bu tədbir növü üçün müddət limiti çatıb",

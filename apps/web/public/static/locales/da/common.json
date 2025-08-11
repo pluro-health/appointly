@@ -1842,7 +1842,7 @@
   "fixed_round_robin": "Fast round robin",
   "add_one_fixed_attendee": "Tilføj en fast deltager og round robin gennem en række deltagere.",
   "calcom_is_better_with_team": "{{appName}} er bedre med teams",
-  "the_calcom_team": "{{companyName}} teamet",
+  "the_appointly_team": "{{companyName}} teamet",
   "add_your_team_members": "Føj dine teammedlemmer til dine begivenhedstyper. Brug kollektiv planlægning til at inkludere alle eller finde den bedst egnede person med round robin planlægning.",
   "booking_limit_reached": "Booking Grænse for denne begivenhedstype er nået",
   "duration_limit_reached": "Varighedsgrænsen for denne begivenhedstype er nået",

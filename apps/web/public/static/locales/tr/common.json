@@ -1842,7 +1842,7 @@
   "fixed_round_robin": "Sabit döngü",
   "add_one_fixed_attendee": "Bir sabit katılımcı ekleyin ve katılımcı sayısına göre rotasyon yapın.",
   "calcom_is_better_with_team": "{{appName}}, ekiplerle daha iyi",
-  "the_calcom_team": "{{companyName}} ekibi",
+  "the_appointly_team": "{{companyName}} ekibi",
   "add_your_team_members": "Ekip üyelerinizi etkinlik türlerinize ekleyin. Herkesi eklemek için toplu planlamayı kullanın veya döngüsel planlama ile en uygun kişiyi bulun.",
   "booking_limit_reached": "Bu etkinlik türü için Rezervasyon Sınırına ulaşıldı",
   "duration_limit_reached": "Bu etkinlik türü için Süre Sınırına ulaşıldı",

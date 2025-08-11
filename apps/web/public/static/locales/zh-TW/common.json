@@ -1842,7 +1842,7 @@
   "fixed_round_robin": "固定輪流制",
   "add_one_fixed_attendee": "新增一名固定的與會者，並由多名與會者輪流擔任。",
   "calcom_is_better_with_team": "{{appName}} 團隊使用更有利",
-  "the_calcom_team": "{{companyName}} 團隊",
+  "the_appointly_team": "{{companyName}} 團隊",
   "add_your_team_members": "將團隊成員新增到活動類型。使用全體預定即可納入所有使用者，也可以使用輪流制預定找出最合適的人選。",
   "booking_limit_reached": "已達此活動類型的預約限制",
   "duration_limit_reached": "已達此活動類型的時間上限",

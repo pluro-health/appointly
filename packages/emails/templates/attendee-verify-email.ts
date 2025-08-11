@@ -50,7 +50,7 @@ ${this.verifyAccountInput.language("hi_user_name", { name: this.verifyAccountInp
 ${this.verifyAccountInput.language("verify_email_by_code_email_body")}
 ${this.verifyAccountInput.verificationEmailCode}
 ${this.verifyAccountInput.language("happy_scheduling")} ${this.verifyAccountInput.language(
-      "the_calcom_team",
+      "the_appointly_team",
       { companyName: COMPANY_NAME }
     )}
 `.replace(/(<([^>]+)>)/gi, "");

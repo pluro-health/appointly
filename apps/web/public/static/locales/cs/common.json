@@ -1842,7 +1842,7 @@
   "fixed_round_robin": "Pevný „round robin“",
   "add_one_fixed_attendee": "Přidejte jednoho pevně stanoveného účastníka a „round robin“ přes daný počet účastníků.",
   "calcom_is_better_with_team": "{{appName}} je lepší pro týmy",
-  "the_calcom_team": "Tým společnosti {{companyName}}",
+  "the_appointly_team": "Tým společnosti {{companyName}}",
   "add_your_team_members": "Přidejte členy týmu k typům událostí. Použijte kolektivní plánování, abyste zahrnuli všechny, případně vyhledejte tu nejvhodnější osobu s plánováním „round robin“.",
   "booking_limit_reached": "Byl dosažen limit rezervací pro tento typ události",
   "duration_limit_reached": "Byl dosažen limit doby trvání pro tento typ události",

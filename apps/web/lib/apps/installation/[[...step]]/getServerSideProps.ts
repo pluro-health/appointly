@@ -6,7 +6,7 @@ import { isConferencing as isConferencingApp } from "@calcom/app-store/utils";
 import { getLocale } from "@calcom/features/auth/lib/getLocale";
 import { getServerSession } from "@calcom/features/auth/lib/getServerSession";
 import { AppOnboardingSteps } from "@calcom/lib/apps/appOnboardingSteps";
-import { CAL_URL } from "@calcom/lib/constants";
+import { WEB_URL } from "@calcom/lib/constants";
 import { getPlaceholderAvatar } from "@calcom/lib/defaultAvatarImage";
 import type { LocationObject } from "@calcom/lib/location";
 import { UserRepository } from "@calcom/lib/server/repository/user";
@@ -127,7 +127,7 @@ const getEventTypes = async (userId: number, teamIds?: number[]) => {
       eventTypes: team.eventTypes
         .map((item) => ({
           ...item,
-          URL: `${CAL_URL}/${item.team ? `team/${item.team.slug}` : item?.users?.[0]?.username}/${item.slug}`,
+          URL: `${WEB_URL}/${item.team ? `team/${item.team.slug}` : item?.users?.[0]?.username}/${item.slug}`,
           selected: false,
           locations: item.locations as unknown as LocationObject[],
           bookingFields: eventTypeBookingFields.parse(item.bookingFields || []),
@@ -162,7 +162,7 @@ const getEventTypes = async (userId: number, teamIds?: number[]) => {
         eventTypes: user.eventTypes
           .map((item) => ({
             ...item,
-            URL: `${CAL_URL}/${item.team ? `team/${item.team.slug}` : item?.users?.[0]?.username}/${
+            URL: `${WEB_URL}/${item.team ? `team/${item.team.slug}` : item?.users?.[0]?.username}/${
               item.slug
             }`,
             selected: false,
