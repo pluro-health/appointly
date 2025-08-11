@@ -13,7 +13,7 @@ import type { OrganizationBranding } from "@calcom/features/ee/organizations/con
 import type { TeamFeatures } from "@calcom/features/flags/config";
 import { useIsFeatureEnabledForTeam } from "@calcom/features/flags/hooks/useIsFeatureEnabledForTeam";
 import Shell from "@calcom/features/shell/Shell";
-import { HOSTED_CAL_FEATURES, IS_CALCOM, WEBAPP_URL } from "@calcom/lib/constants";
+import { WEBAPP_URL } from "@calcom/lib/constants";
 import { getPlaceholderAvatar } from "@calcom/lib/defaultAvatarImage";
 import { getUserAvatarUrl } from "@calcom/lib/getAvatarUrl";
 import { useCompatSearchParams } from "@calcom/lib/hooks/useCompatSearchParams";
@@ -40,9 +40,9 @@ const getTabs = (orgBranding: OrganizationBranding | null) => {
         { name: "general", href: "/settings/my-account/general" },
         { name: "calendars", href: "/settings/my-account/calendars" },
         { name: "conferencing", href: "/settings/my-account/conferencing" },
-        { name: "appearance", href: "/settings/my-account/appearance" },
-        { name: "out_of_office", href: "/settings/my-account/out-of-office" },
-        { name: "push_notifications", href: "/settings/my-account/push-notifications" },
+        // { name: "appearance", href: "/settings/my-account/appearance" },
+        // { name: "out_of_office", href: "/settings/my-account/out-of-office" },
+        // { name: "push_notifications", href: "/settings/my-account/push-notifications" },
         // TODO
         // { name: "referrals", href: "/settings/my-account/referrals" },
       ],
@@ -53,124 +53,133 @@ const getTabs = (orgBranding: OrganizationBranding | null) => {
       icon: "key",
       children: [
         { name: "password", href: "/settings/security/password" },
-        { name: "impersonation", href: "/settings/security/impersonation" },
-        { name: "2fa_auth", href: "/settings/security/two-factor-auth" },
+        // { name: "impersonation", href: "/settings/security/impersonation" },
+        // { name: "2fa_auth", href: "/settings/security/two-factor-auth" },
       ],
     },
     {
-      name: "billing",
-      href: "/settings/billing",
-      icon: "credit-card",
-      children: [{ name: "manage_billing", href: "/settings/billing" }],
-    },
-    {
-      name: "developer",
-      href: "/settings/developer",
-      icon: "terminal",
-      children: [
-        //
-        { name: "webhooks", href: "/settings/developer/webhooks" },
-        { name: "api_keys", href: "/settings/developer/api-keys" },
-        { name: "admin_api", href: "/settings/organizations/admin-api" },
-        // TODO: Add profile level for embeds
-        // { name: "embeds", href: "/v2/settings/developer/embeds" },
-      ],
-    },
-    {
-      name: "organization",
-      href: "/settings/organizations",
-      children: [
-        {
-          name: "profile",
-          href: "/settings/organizations/profile",
-        },
-        {
-          name: "general",
-          href: "/settings/organizations/general",
-        },
-        ...(orgBranding
-          ? [
-              {
-                name: "members",
-                href: `${WEBAPP_URL}/settings/organizations/${orgBranding.slug}/members`,
-                isExternalLink: true,
-              },
-            ]
-          : []),
-        {
-          name: "privacy",
-          href: "/settings/organizations/privacy",
-        },
-        {
-          name: "billing",
-          href: "/settings/organizations/billing",
-        },
-        { name: "OAuth Clients", href: "/settings/organizations/platform/oauth-clients" },
-        {
-          name: "SSO",
-          href: "/settings/organizations/sso",
-        },
-        {
-          name: "directory_sync",
-          href: "/settings/organizations/dsync",
-        },
-        {
-          name: "admin_api",
-          href: "https://cal.com/docs/enterprise-features/api/api-reference/bookings#admin-access",
-        },
-      ],
-    },
-    {
-      name: "teams",
-      href: "/teams",
+      name: "Admin",
+      href: "/settings/user-management",
       icon: "users",
-      children: [],
-    },
-    {
-      name: "other_teams",
-      href: "/settings/organizations/teams/other",
-      icon: "users",
-      children: [],
-    },
-    {
-      name: "admin",
-      href: "/settings/admin",
-      icon: "lock",
       children: [
-        //
-        { name: "features", href: "/settings/admin/flags" },
-        { name: "license", href: "/auth/setup?step=1" },
-        { name: "impersonation", href: "/settings/admin/impersonation" },
-        { name: "apps", href: "/settings/admin/apps/calendar" },
-        { name: "users", href: "/settings/admin/users" },
-        { name: "organizations", href: "/settings/admin/organizations" },
-        { name: "lockedSMS", href: "/settings/admin/lockedSMS" },
-        { name: "oAuth", href: "/settings/admin/oAuth" },
-        { name: "Workspace Platforms", href: "/settings/admin/workspace-platforms" },
-        { name: "Playground", href: "/settings/admin/playground" },
+        // { name: "users", href: "/settings/admin/users" },
+        { name: "Users", href: "/settings/admin/user-management" },
+        { name: "Centers", href: "/settings/admin/centers" },
+        { name: "Apps", href: "/settings/admin/connected-apps" },
       ],
     },
+    // {
+    //   name: "billing",
+    //   href: "/settings/billing",
+    //   icon: "credit-card",
+    //   children: [{ name: "manage_billing", href: "/settings/billing" }],
+    // },
+    // {
+    //   name: "developer",
+    //   href: "/settings/developer",
+    //   icon: "terminal",
+    //   children: [
+    //     //
+    //     { name: "webhooks", href: "/settings/developer/webhooks" },
+    //     { name: "api_keys", href: "/settings/developer/api-keys" },
+    //     { name: "admin_api", href: "/settings/organizations/admin-api" },
+    //     // TODO: Add profile level for embeds
+    //     // { name: "embeds", href: "/v2/settings/developer/embeds" },
+    //   ],
+    // },
+    // {
+    //   name: "organization",
+    //   href: "/settings/organizations",
+    //   children: [
+    //     {
+    //       name: "profile",
+    //       href: "/settings/organizations/profile",
+    //     },
+    //     {
+    //       name: "general",
+    //       href: "/settings/organizations/general",
+    //     },
+    //     ...(orgBranding
+    //       ? [
+    //           {
+    //             name: "members",
+    //             href: "https://app.cal.com/settings/organizations/i/members",
+    //             isExternalLink: true,
+    //           },
+    //         ]
+    //       : []),
+    //     {
+    //       name: "privacy",
+    //       href: "/settings/organizations/privacy",
+    //     },
+    //     {
+    //       name: "billing",
+    //       href: "/settings/organizations/billing",
+    //     },
+    //     { name: "OAuth Clients", href: "/settings/organizations/platform/oauth-clients" },
+    //     {
+    //       name: "SSO",
+    //       href: "/settings/organizations/sso",
+    //     },
+    //     {
+    //       name: "directory_sync",
+    //       href: "/settings/organizations/dsync",
+    //     },
+    //     {
+    //       name: "admin_api",
+    //       href: "https://cal.com/docs/enterprise-features/api/api-reference/bookings#admin-access",
+    //     },
+    //   ],
+    // },
+    // {
+    //   name: "teams",
+    //   href: "/teams",
+    //   icon: "users",
+    //   children: [],
+    // },
+    // {
+    //   name: "other_teams",
+    //   href: "/settings/organizations/teams/other",
+    //   icon: "users",
+    //   children: [],
+    // },
+    // {
+    //   name: "admin",
+    //   href: "/settings/admin",
+    //   icon: "lock",
+    //   children: [
+    //     //
+    //     { name: "features", href: "/settings/admin/flags" },
+    //     { name: "license", href: "/auth/setup?step=1" },
+    //     { name: "impersonation", href: "/settings/admin/impersonation" },
+    //     { name: "apps", href: "/settings/admin/apps/calendar" },
+    //     { name: "organizations", href: "/settings/admin/organizations" },
+    //     { name: "lockedSMS", href: "/settings/admin/lockedSMS" },
+    //     { name: "oAuth", href: "/settings/admin/oAuth" },
+    //     { name: "Workspace Platforms", href: "/settings/admin/workspace-platforms" },
+    //   ],
+    // },
   ];
 
-  tabs.find((tab) => {
-    if (tab.name === "security" && !HOSTED_CAL_FEATURES) {
-      tab.children?.push({ name: "sso_configuration", href: "/settings/security/sso" });
-      // TODO: Enable dsync for self hosters
-      // tab.children?.push({ name: "directory_sync", href: "/settings/security/dsync" });
-    }
-    if (tab.name === "admin" && IS_CALCOM) {
-      tab.children?.push({ name: "create_org", href: "/settings/organizations/new" });
-    }
-    if (tab.name === "admin" && IS_CALCOM) {
-      tab.children?.push({ name: "create_license_key", href: "/settings/license-key/new" });
-    }
-  });
+  // tabs.find((tab) => {
+  //   if (tab.name === "security" && !HOSTED_CAL_FEATURES) {
+  //     tab.children?.push({ name: "sso_configuration", href: "/settings/security/sso" });
+  //     // TODO: Enable dsync for self hosters
+  //     // tab.children?.push({ name: "directory_sync", href: "/settings/security/dsync" });
+  //   }
+  //   if (tab.name === "admin" && IS_CALCOM) {
+  //     tab.children?.push({ name: "create_org", href: "/settings/organizations/new" });
+  //   }
+  //   if (tab.name === "admin" && IS_CALCOM) {
+  //     tab.children?.push({ name: "create_license_key", href: "/settings/license-key/new" });
+  //   }
+  // });
 
   return tabs;
 };
 
 // The following keys are assigned to admin only
-const adminRequiredKeys = ["admin", "User Management"];
+const adminRequiredKeys = ["admin", "Admin"];
 const organizationRequiredKeys = ["organization"];
 const organizationAdminKeys = [
   "privacy",
@@ -188,7 +197,7 @@ const useTabs = ({
 }: {
   isDelegationCredentialEnabled: boolean;
   isPbacEnabled: boolean;
-  canViewRoles?: boolean;
+  canViewRoles: boolean;
 }) => {
   const session = useSession();
   const { data: user } = trpc.viewer.me.get.useQuery({ includePasswordAdded: true });
@@ -225,8 +234,7 @@ const useTabs = ({
           });
         }
 
-        // Add pbac menu item only if feature flag is enabled AND user has permission to view roles
-        // This prevents showing the menu item when user has no organization permissions
+        // Add pbac menu item only if feature flag is enabled and user has permission to view roles
         if (isPbacEnabled && canViewRoles) {
           newArray.push({
             name: "roles_and_permissions",
@@ -267,7 +275,15 @@ const useTabs = ({
       if (isAdmin) return true;
       return !adminRequiredKeys.includes(tab.name);
     });
-  }, [isAdmin, orgBranding, isOrgAdminOrOwner, user, isDelegationCredentialEnabled]);
+  }, [
+    isAdmin,
+    orgBranding,
+    isOrgAdminOrOwner,
+    user,
+    isDelegationCredentialEnabled,
+    isPbacEnabled,
+    canViewRoles,
+  ]);
 
   return processTabsMemod;
 };
@@ -297,36 +313,7 @@ interface SettingsSidebarContainerProps {
   canViewRoles?: boolean;
 }
 
-const TeamRolesNavItem = ({
-  team,
-  teamFeatures,
-}: {
-  team: { id: number; parentId?: number | null };
-  teamFeatures?: Record<number, TeamFeatures>;
-}) => {
-  const { t } = useLocale();
-
-  // Always call the hook first (Rules of Hooks)
-  const isPbacEnabled = useIsFeatureEnabledForTeam({
-    teamFeatures,
-    teamId: team.parentId || 0, // Use 0 as fallback when no parentId
-    feature: "pbac",
-  });
-
-  // Only show for sub-teams (teams with parentId) AND when parent has PBAC enabled
-  if (!team.parentId || !isPbacEnabled) return null;
-
-  return (
-    <VerticalTabItem
-      name={t("roles_and_permissions")}
-      href={`/settings/teams/${team.id}/roles`}
-      textClassNames="px-3 text-emphasis font-medium text-sm"
-      disableChevron
-    />
-  );
-};
-
-const TeamListCollapsible = ({ teamFeatures }: { teamFeatures?: Record<number, TeamFeatures> }) => {
+const TeamListCollapsible = () => {
   const { data: teams } = trpc.viewer.teams.list.useQuery();
   const { t } = useLocale();
   const [teamMenuState, setTeamMenuState] =
@@ -435,8 +422,6 @@ const TeamListCollapsible = ({ teamFeatures }: { teamFeatures?: Record<number, T
                     textClassNames="px-3 text-emphasis font-medium text-sm"
                     disableChevron
                   />
-                  {/* Show roles only for sub-teams with PBAC-enabled parent */}
-                  <TeamRolesNavItem team={team} teamFeatures={teamFeatures} />
                   {(checkAdminOrOwner(team.role) ||
                     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                     // @ts-ignore this exists wtf?
@@ -487,7 +472,7 @@ const SettingsSidebarContainer = ({
   navigationIsOpenedOnMobile,
   bannersHeight,
   teamFeatures,
-  canViewRoles,
+  canViewRoles = false,
 }: SettingsSidebarContainerProps) => {
   const searchParams = useCompatSearchParams();
   const orgBranding = useOrgBranding();
@@ -625,7 +610,7 @@ const SettingsSidebarContainer = ({
                         </Skeleton>
                       </div>
                     </Link>
-                    <TeamListCollapsible teamFeatures={teamFeatures} />
+                    <TeamListCollapsible />
                     {(!orgBranding?.id || isOrgAdminOrOwner) && (
                       <VerticalTabItem
                         name={t("add_a_team")}
@@ -798,7 +783,7 @@ export type SettingsLayoutProps = {
 export default function SettingsLayoutAppDirClient({
   children,
   teamFeatures,
-  canViewRoles,
+  canViewRoles = false,
   ...rest
 }: SettingsLayoutProps) {
   const pathname = usePathname();
@@ -864,7 +849,7 @@ const SidebarContainerElement = ({
   bannersHeight,
   setSideContainerOpen,
   teamFeatures,
-  canViewRoles,
+  canViewRoles = false,
 }: SidebarContainerElementProps) => {
   const { t } = useLocale();
   return (

@@ -7,6 +7,7 @@ import { deleteUser } from "@calcom/features/users/lib/userDeletionService";
 
 import { authedAdminProcedure } from "../../../procedures/authedProcedure";
 import { router } from "../../../trpc";
+import { centerAdminRouter } from "./centers/_router";
 import { ZCreateSelfHostedLicenseSchema } from "./createSelfHostedLicenseKey.schema";
 import { ZListMembersSchema } from "./listPaginated.schema";
 import { ZAdminLockUserAccountSchema } from "./lockUserAccount.schema";
@@ -330,4 +331,7 @@ export const adminRouter = router({
 
       return { success: true, message: "Invitation email resent successfully" };
     }),
+
+  // Medical Centers Management
+  centers: centerAdminRouter,
 });

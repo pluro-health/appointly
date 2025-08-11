@@ -26,6 +26,11 @@ interface User {
   role: UserPermissionRole;
   createdAt: Date;
   emailVerified: Date | null;
+  center?: {
+    id: number;
+    name: string;
+    address: string | null;
+  } | null;
 }
 
 interface InvitationToken {
@@ -48,6 +53,7 @@ export function UserManagementView() {
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<UserPermissionRole>(UserPermissionRole.USER);
+  const [inviteCenterId, setInviteCenterId] = useState<number | null>(null);
   const [isInviting, setIsInviting] = useState(false);
   const [userToDelete, setUserToDelete] = useState<number | null>(null);
   const [invitationToDelete, setInvitationToDelete] = useState<number | null>(null);
@@ -72,6 +78,12 @@ export function UserManagementView() {
     refetchOnWindowFocus: false,
   });
 
+  // Fetch centers for user assignment
+  const { data: centersData } = trpc.viewer.admin.centers.list.useQuery({
+    limit: 100,
+    includeInactive: false,
+  });
+
   // Send invitation mutation
   const sendInvitationMutation = trpc.viewer.admin.sendInvitation.useMutation({
     onSuccess: () => {
@@ -79,6 +91,7 @@ export function UserManagementView() {
       setIsInviteDialogOpen(false);
       setInviteEmail("");
       setInviteRole(UserPermissionRole.USER);
+      setInviteCenterId(null);
       refetchInvitations();
     },
     onError: (error) => {
@@ -281,6 +294,31 @@ export function UserManagementView() {
                   />
                 </div>
                 <div className="space-y-2">
+                  <label className="text-sm font-medium">Medical Center (Optional)</label>
+                  <Select
+                    options={[
+                      { value: null, label: "No center assigned" },
+                      ...(centersData?.centers || []).map((center) => ({
+                        value: center.id,
+                        label: center.name,
+                      })),
+                    ]}
+                    value={
+                      inviteCenterId
+                        ? {
+                            value: inviteCenterId,
+                            label: centersData?.centers?.find((c) => c.id === inviteCenterId)?.name || "",
+                          }
+                        : { value: null, label: "No center assigned" }
+                    }
+                    onChange={(value: any) => setInviteCenterId(value?.value || null)}
+                    placeholder="Select medical center"
+                  />
+                  <p className="text-xs text-gray-500">
+                    Assign the user to a specific medical center. This can be changed later.
+                  </p>
+                </div>
+                <div className="space-y-2">
                   <label className="text-sm font-medium">Options</label>
                   <div className="flex items-center space-x-2">
                     <input
@@ -325,6 +363,7 @@ export function UserManagementView() {
               <TableRow>
                 <TableHead>User</TableHead>
                 <TableHead>Email</TableHead>
+                <TableHead>Medical Center</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>
@@ -354,10 +393,22 @@ export function UserManagementView() {
                   </TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>
+                    {user.center ? (
+                      <div className="text-sm">
+                        <div className="font-medium">{user.center.name}</div>
+                        {user.center.address && (
+                          <div className="text-xs text-gray-500">{user.center.address}</div>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-sm text-gray-400">No center assigned</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
                     <Badge variant={getRoleBadgeColor(user.role)}>{user.role}</Badge>
                   </TableCell>
                   <TableCell>{getStatusBadge(user)}</TableCell>
-                  <TableCell>
+                  <TableCell widthClassNames="w-auto">
                     <div className="flex w-full justify-end">
                       <DropdownActions
                         actions={[
@@ -420,7 +471,7 @@ export function UserManagementView() {
                   <TableHead>Sent</TableHead>
                   <TableHead>Expires</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead widthClassNames="w-auto">
+                  <TableHead>
                     <span className="sr-only">Actions</span>
                   </TableHead>
                 </TableRow>
@@ -442,7 +493,7 @@ export function UserManagementView() {
                         <Badge variant="gray">Pending</Badge>
                       )}
                     </TableCell>
-                    <TableCell>
+                    <TableCell widthClassNames="w-auto">
                       <div className="flex w-full justify-end">
                         <DropdownActions
                           actions={[

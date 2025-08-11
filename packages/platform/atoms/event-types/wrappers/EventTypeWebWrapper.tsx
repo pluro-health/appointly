@@ -11,16 +11,13 @@ import { EventType as EventTypeComponent } from "@calcom/features/eventtypes/com
 import type { EventTypeSetupProps } from "@calcom/features/eventtypes/lib/types";
 import { WEBSITE_URL } from "@calcom/lib/constants";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
-import { useTelemetry } from "@calcom/lib/hooks/useTelemetry";
 import { useTypedQuery } from "@calcom/lib/hooks/useTypedQuery";
 import { HttpError } from "@calcom/lib/http-error";
-import { telemetryEventTypes } from "@calcom/lib/telemetry";
 import { SchedulingType } from "@calcom/prisma/enums";
 import { trpc } from "@calcom/trpc/react";
 import type { RouterOutputs } from "@calcom/trpc/react";
 import useMeQuery from "@calcom/trpc/react/hooks/useMeQuery";
 import { showToast } from "@calcom/ui/components/toast";
-import { revalidateTeamEventTypeCache } from "@calcom/web/app/(booking-page-wrapper)/team/[slug]/[type]/actions";
 import { revalidateEventTypeEditPage } from "@calcom/web/app/(use-page-wrapper)/event-types/[type]/actions";
 
 import { TRPCClientError } from "@trpc/react-query";
@@ -65,25 +62,6 @@ const EventInstantTab = dynamic(() =>
   )
 );
 
-const EventRecurringTab = dynamic(() =>
-  // import web wrapper when it's ready
-  import("./EventRecurringWebWrapper").then((mod) => mod)
-);
-
-const EventAppsTab = dynamic(() =>
-  import("@calcom/features/eventtypes/components/tabs/apps/EventAppsTab").then((mod) => mod.EventAppsTab)
-);
-
-const EventWorkflowsTab = dynamic(
-  () => import("@calcom/features/eventtypes/components/tabs/workflows/EventWorkfowsTab")
-);
-
-const EventWebhooksTab = dynamic(() =>
-  import("@calcom/features/eventtypes/components/tabs/webhooks/EventWebhooksTab").then(
-    (mod) => mod.EventWebhooksTab
-  )
-);
-
 const EventAITab = dynamic(() =>
   import("@calcom/features/eventtypes/components/tabs/ai/EventAITab").then((mod) => mod.EventAITab)
 );
@@ -116,16 +94,10 @@ const EventTypeWeb = ({ id, ...rest }: EventTypeSetupProps & { id: number }) => 
   const { data: user, isPending: isLoggedInUserPending } = useMeQuery();
   const isTeamEventTypeDeleted = useRef(false);
   const leaveWithoutAssigningHosts = useRef(false);
-  const telemetry = useTelemetry();
   const [isOpenAssignmentWarnDialog, setIsOpenAssignmentWarnDialog] = useState<boolean>(false);
   const [pendingRoute, setPendingRoute] = useState("");
   const { eventType, locationOptions, team, teamMembers, destinationCalendar } = rest;
   const [slugExistsChildrenDialogOpen, setSlugExistsChildrenDialogOpen] = useState<ChildrenEventType[]>([]);
-  const { data: eventTypeApps } = trpc.viewer.apps.integrations.useQuery({
-    extendsFeature: "EventType",
-    teamId: eventType.team?.id || eventType.parent?.teamId,
-    onlyInstalled: true,
-  });
   const updateMutation = trpc.viewer.eventTypes.update.useMutation({
     onSuccess: async () => {
       const currentValues = form.getValues();
@@ -139,15 +111,6 @@ const EventTypeWeb = ({ id, ...rest }: EventTypeSetupProps & { id: number }) => 
       // Reset the form with these values as new default values to ensure the correct comparison for dirtyFields eval
       form.reset(currentValues);
       revalidateEventTypeEditPage(eventType.id);
-      if (eventType.team?.slug) {
-        // When an event-type is updated,
-        // guests could still hit a stale cache and see the old page.
-        revalidateTeamEventTypeCache({
-          teamSlug: eventType.team.slug,
-          meetingSlug: eventType.slug,
-          orgSlug: eventType.team.parent?.slug ?? null,
-        });
-      }
       showToast(t("event_type_updated_successfully", { eventTypeTitle: eventType.title }), "success");
     },
     async onSettled() {
@@ -179,16 +142,6 @@ const EventTypeWeb = ({ id, ...rest }: EventTypeSetupProps & { id: number }) => 
 
   const { form, handleSubmit } = useEventTypeForm({ eventType, onSubmit: updateMutation.mutate });
   const slug = form.watch("slug") ?? eventType.slug;
-
-  const { data: allActiveWorkflows } = trpc.viewer.workflows.getAllActiveWorkflows.useQuery({
-    eventType: {
-      id,
-      teamId: eventType.teamId,
-      userId: eventType.userId,
-      parent: eventType.parent,
-      metadata: eventType.metadata,
-    },
-  });
 
   const orgBranding = useOrgBranding();
 
@@ -234,14 +187,6 @@ const EventTypeWeb = ({ id, ...rest }: EventTypeSetupProps & { id: number }) => 
       />
     ),
     instant: <EventInstantTab eventType={eventType} isTeamEvent={!!team} />,
-    recurring: <EventRecurringTab eventType={eventType} />,
-    apps: <EventAppsTab eventType={{ ...eventType, URL: permalink }} />,
-    workflows: allActiveWorkflows ? (
-      <EventWorkflowsTab eventType={eventType} workflows={allActiveWorkflows} />
-    ) : (
-      <></>
-    ),
-    webhooks: <EventWebhooksTab eventType={eventType} />,
     ai: <EventAITab eventType={eventType} isTeamEvent={!!team} />,
   } as const;
 
@@ -273,10 +218,6 @@ const EventTypeWeb = ({ id, ...rest }: EventTypeSetupProps & { id: number }) => 
         EventLimitsTab,
         EventAdvancedTab,
         EventInstantTab,
-        EventRecurringTab,
-        EventAppsTab,
-        EventWorkflowsTab,
-        EventWebhooksTab,
       ];
 
       Components.forEach((C) => {
@@ -297,19 +238,7 @@ const EventTypeWeb = ({ id, ...rest }: EventTypeSetupProps & { id: number }) => 
 
   const querySchema = z.object({
     tabName: z
-      .enum([
-        "setup",
-        "availability",
-        "team",
-        "limits",
-        "advanced",
-        "instant",
-        "recurring",
-        "apps",
-        "workflows",
-        "webhooks",
-        "ai",
-      ])
+      .enum(["setup", "availability", "team", "limits", "advanced", "instant", "ai"])
       .optional()
       .default("setup"),
   });
@@ -321,15 +250,6 @@ const EventTypeWeb = ({ id, ...rest }: EventTypeSetupProps & { id: number }) => 
   const deleteMutation = trpc.viewer.eventTypes.delete.useMutation({
     onSuccess: async () => {
       await utils.viewer.eventTypes.invalidate();
-      if (team?.slug) {
-        // When a team event-type is deleted,
-        // guests could still hit a stale cache and see the old page.
-        revalidateTeamEventTypeCache({
-          teamSlug: team.slug,
-          meetingSlug: eventType.slug,
-          orgSlug: team.parent?.slug ?? null,
-        });
-      }
       showToast(t("event_type_deleted_successfully"), "success");
       isTeamEventTypeDeleted.current = true;
       appRouter.push("/event-types");
@@ -351,14 +271,11 @@ const EventTypeWeb = ({ id, ...rest }: EventTypeSetupProps & { id: number }) => 
     formMethods: form,
     eventType,
     team,
-    eventTypeApps,
-    allActiveWorkflows,
   });
 
   return (
     <EventTypeComponent
       {...rest}
-      allActiveWorkflows={allActiveWorkflows}
       tabMap={tabMap}
       onDelete={(id) => {
         deleteMutation.mutate({ id });
@@ -366,7 +283,6 @@ const EventTypeWeb = ({ id, ...rest }: EventTypeSetupProps & { id: number }) => 
       isDeleting={deleteMutation.isPending}
       onConflict={onConflict}
       handleSubmit={handleSubmit}
-      eventTypeApps={eventTypeApps}
       formMethods={form}
       isUpdating={updateMutation.isPending}
       isPlatform={false}
@@ -384,7 +300,6 @@ const EventTypeWeb = ({ id, ...rest }: EventTypeSetupProps & { id: number }) => 
             onConfirm={(e: { preventDefault: () => void }) => {
               e.preventDefault();
               handleSubmit(form.getValues());
-              telemetry.event(telemetryEventTypes.slugReplacementAction);
               setSlugExistsChildrenDialogOpen([]);
             }}
           />
