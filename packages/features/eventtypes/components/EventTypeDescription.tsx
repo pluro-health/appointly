@@ -2,7 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { useMemo } from "react";
 import type { z } from "zod";
 
-import { Price } from "@calcom/features/bookings/components/event-meta/Price";
+import { AppointlyPrice, Price } from "@calcom/features/bookings/components/event-meta/Price";
 import { PriceIcon } from "@calcom/features/bookings/components/event-meta/PriceIcon";
 import { getPaymentAppData } from "@calcom/lib/getPaymentAppData";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
@@ -107,7 +107,7 @@ export const EventTypeDescription = ({
                 customStartIcon={
                   <PriceIcon currency={eventType.paymentCurrency || "INR"} className="h-3 w-3 stroke-[3px]" />
                 }>
-                <Price
+                <AppointlyPrice
                   currency={eventType.paymentCurrency || "INR"}
                   price={eventType.consultationPrice}
                   displayAlternateSymbol={false}

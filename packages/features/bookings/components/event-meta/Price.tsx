@@ -26,3 +26,25 @@ export const Price = ({ price, currency, displayAlternateSymbol = true }: EventP
     />
   );
 };
+
+export const AppointlyPrice = ({ price, currency, displayAlternateSymbol = true }: EventPrice) => {
+  if (price === 0) return null;
+  const formattedPrice =
+    currency !== "BTC"
+      ? Intl.NumberFormat("en", {
+          style: "currency",
+          currency: currency?.toUpperCase() || "USD",
+        }).format(price)
+      : formatPrice(price, currency);
+  console.log("price", formattedPrice);
+
+  return currency !== "BTC" ? (
+    <>{formattedPrice}</>
+  ) : (
+    <AlbyPriceComponent
+      displaySymbol={displayAlternateSymbol}
+      price={price}
+      formattedPrice={formattedPrice}
+    />
+  );
+};

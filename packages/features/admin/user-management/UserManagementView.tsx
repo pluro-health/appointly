@@ -190,7 +190,7 @@ export function UserManagementView() {
         role: inviteRole,
         expiresInHours: 24,
         replaceExisting: isReplacingInvitation,
-        centerId: inviteCenterId,
+        centerId: inviteCenterId || undefined,
       });
     } finally {
       setIsInviting(false);
@@ -337,7 +337,7 @@ export function UserManagementView() {
                   <Select
                     options={[
                       { value: null, label: "No center assigned" },
-                      ...(centersData?.centers || []).map((center) => ({
+                      ...(centersData?.centers || []).map((center: { id: number; name: string }) => ({
                         value: center.id,
                         label: center.name,
                       })),
@@ -346,7 +346,10 @@ export function UserManagementView() {
                       inviteCenterId
                         ? {
                             value: inviteCenterId,
-                            label: centersData?.centers?.find((c) => c.id === inviteCenterId)?.name || "",
+                            label:
+                              centersData?.centers?.find(
+                                (c: { id: number; name: string }) => c.id === inviteCenterId
+                              )?.name || "",
                           }
                         : { value: null, label: "No center assigned" }
                     }
@@ -444,7 +447,7 @@ export function UserManagementView() {
                     <Badge variant={getRoleBadgeColor(user.role)}>{user.role}</Badge>
                   </TableCell>
                   <TableCell>{getStatusBadge(user)}</TableCell>
-                  <TableCell widthClassNames="w-auto">
+                  <TableCell>
                     <div className="flex w-full justify-end">
                       <DropdownActions
                         actions={[
@@ -472,7 +475,7 @@ export function UserManagementView() {
                                   label: "Delete User",
                                   onClick: () => setUserToDelete(user.id),
                                   icon: "trash" as const,
-                                  color: "destructive",
+                                  color: "destructive" as const,
                                 },
                               ]
                             : [
@@ -545,7 +548,7 @@ export function UserManagementView() {
                         <Badge variant="gray">Pending</Badge>
                       )}
                     </TableCell>
-                    <TableCell widthClassNames="w-auto">
+                    <TableCell>
                       <div className="flex w-full justify-end">
                         <DropdownActions
                           actions={[

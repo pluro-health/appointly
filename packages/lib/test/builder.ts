@@ -78,6 +78,12 @@ export const buildBooking = (
     attendees: [],
     oneTimePassword: null,
     creationSource: CreationSource.WEBAPP,
+    paymentStatus: "PENDING", // or another valid BookingPaymentStatus value
+    appointlyRefundAmount: null,
+    appointlyRescheduleCount: null,
+    appointlyOriginalBookingDate: null,
+    appointlyCancellationReason: "",
+    appointlyRefundStatus: "NOT_APPLICABLE",
     ...booking,
   };
 };

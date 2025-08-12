@@ -3374,6 +3374,7 @@ __metadata:
     ical.js: ^1.4.0
     ics: ^2.37.0
     jimp: ^0.16.1
+    js-sha512: ^0.9.0
     next-collect: ^0.2.1
     next-i18next: ^15.4.2
     rrule: ^2.7.1
@@ -31990,6 +31991,13 @@ __metadata:
   version: 4.3.0
   resolution: "js-sdsl@npm:4.3.0"
   checksum: ce908257cf6909e213af580af3a691a736f5ee8b16315454768f917a682a4ea0c11bde1b241bbfaecedc0eb67b72101b2c2df2ffaed32aed5d539fca816f054e
+  languageName: node
+  linkType: hard
+
+"js-sha512@npm:^0.9.0":
+  version: 0.9.0
+  resolution: "js-sha512@npm:0.9.0"
+  checksum: da00d207d0c66469f816db9176bb6fc13cfacd1606352910cb0d6ca287946d379c2ba260e0d6ca8d7b3f3b94734c284fe8e609e8bd8212b3f7e0e51be276c90c
   languageName: node
   linkType: hard
 

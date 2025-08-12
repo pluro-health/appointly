@@ -45,6 +45,7 @@ export const BookerWebWrapper = (props: BookerWebWrapperAtomProps) => {
           consultationPrice: (props.eventData as any).consultationPrice
             ? Number((props.eventData as any).consultationPrice)
             : null,
+          paymentCurrency: (props.eventData as any).paymentCurrency || undefined,
         },
         isSuccess: true,
         isError: false,
@@ -58,6 +59,7 @@ export const BookerWebWrapper = (props: BookerWebWrapperAtomProps) => {
               consultationPrice: (clientFetchedEvent.data as any).consultationPrice
                 ? Number((clientFetchedEvent.data as any).consultationPrice)
                 : null,
+              paymentCurrency: (clientFetchedEvent.data as any).paymentCurrency || undefined,
             }
           : undefined,
       };

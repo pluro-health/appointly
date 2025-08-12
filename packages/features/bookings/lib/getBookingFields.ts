@@ -173,9 +173,9 @@ export const ensureBookingInputsHaveSystemFields = ({
       defaultLabel: "phone_number",
       type: "phone",
       name: "attendeePhoneNumber",
-      required: false,
-      hidden: true,
-      editable: "system-but-optional",
+      required: true,
+      hidden: false,
+      editable: "system",
       sources: [
         {
           label: "Default",

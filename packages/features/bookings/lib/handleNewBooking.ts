@@ -27,7 +27,7 @@ import getICalUID from "@calcom/emails/lib/getICalUID";
 import { CalendarEventBuilder } from "@calcom/features/CalendarEventBuilder";
 import { handleWebhookTrigger } from "@calcom/features/bookings/lib/handleWebhookTrigger";
 import { isEventTypeLoggingEnabled } from "@calcom/features/bookings/lib/isEventTypeLoggingEnabled";
-import { getShouldServeCache } from "@calcom/features/calendar-cache/lib/getShouldServeCache";
+import { CacheService } from "@calcom/features/calendar-cache/lib/getShouldServeCache";
 import AssignmentReasonRecorder from "@calcom/features/ee/round-robin/assignmentReason/AssignmentReasonRecorder";
 import {
   allowDisablingAttendeeConfirmationEmails,
@@ -92,7 +92,7 @@ import { refreshCredentials } from "./getAllCredentialsForUsersOnEvent/refreshCr
 import getBookingDataSchema from "./getBookingDataSchema";
 import { addVideoCallDataToEvent } from "./handleNewBooking/addVideoCallDataToEvent";
 import { checkActiveBookingsLimitForBooker } from "./handleNewBooking/checkActiveBookingsLimitForBooker";
-import { checkBookingAndDurationLimits } from "./handleNewBooking/checkBookingAndDurationLimits";
+import { CheckBookingAndDurationLimitsService } from "./handleNewBooking/checkBookingAndDurationLimits";
 import { checkIfBookerEmailIsBlocked } from "./handleNewBooking/checkIfBookerEmailIsBlocked";
 import { createBooking } from "./handleNewBooking/createBooking";
 import type { Booking } from "./handleNewBooking/createBooking";
@@ -229,6 +229,12 @@ export const buildDryRunBooking = ({
     creationSource: CreationSource.WEBAPP,
     references: [],
     payment: [],
+    paymentStatus: "PENDING" as const,
+    appointlyRescheduleCount: 0,
+    appointlyOriginalBookingDate: null,
+    appointlyCancellationReason: null,
+    appointlyRefundStatus: "NOT_APPLICABLE" as const,
+    appointlyRefundAmount: null,
   } satisfies ReturnTypeCreateBooking;
 
   /**
@@ -437,7 +443,10 @@ async function handler(
 
   const bookingData = await getBookingData({
     reqBody: rawBookingData,
-    eventType,
+    eventType: {
+      ...eventType,
+      paymentCurrency: eventType.paymentCurrency || "",
+    },
     schema: bookingDataSchema,
   });
 
@@ -510,6 +519,8 @@ async function handler(
 
   const paymentAppData = getPaymentAppData({
     ...eventType,
+    consultationPrice: eventType.consultationPrice ? Number(eventType.consultationPrice) : null,
+    paymentCurrency: eventType.paymentCurrency || undefined,
     metadata: eventTypeMetaDataSchemaWithTypedApps.parse(eventType.metadata),
   });
 
@@ -721,6 +732,7 @@ async function handler(
       users: IsFixedAwareUserWithCredentials[];
     } = {
       ...eventType,
+      paymentCurrency: eventType.paymentCurrency || "",
       users: users as IsFixedAwareUserWithCredentials[],
       ...(eventType.recurringEvent && {
         recurringEvent: {
@@ -1391,7 +1403,10 @@ async function handler(
           recurringEventId: reqBody.recurringEventId,
         },
         eventType: {
-          eventTypeData: eventType,
+          eventTypeData: {
+            ...eventType,
+            paymentCurrency: eventType.paymentCurrency || "",
+          },
           id: eventTypeId,
           slug: eventTypeSlug,
           organizerUser,
@@ -1500,7 +1515,7 @@ async function handler(
         isManagedEventType,
       });
 
-      booking = dryRunBooking;
+      booking = dryRunBooking as CreatedBooking;
       troubleshooterData = {
         ...troubleshooterData,
         ..._troubleshooterData,
@@ -1788,7 +1803,7 @@ async function handler(
   } else if (isConfirmedByDefault) {
     // Use EventManager to conditionally use all needed integrations.
     const createManager = areCalendarEventsEnabled ? await eventManager.create(evt) : placeholderCreatedEvent;
-    if (evt.location) {
+    if (evt.location && booking) {
       booking.location = evt.location;
     }
     // This gets overridden when creating the event - to check if notes have been hidden or not. We just reset this back
@@ -1874,7 +1889,7 @@ async function handler(
           organizerOrFirstDynamicGroupMemberDefaultLocationUrl ||
           videoCallUrl;
 
-        if (!isDryRun && evt.iCalUID !== booking.iCalUID) {
+        if (!isDryRun && booking && evt.iCalUID !== booking.iCalUID) {
           // The eventManager could change the iCalUID. At this point we can update the DB record
           await prisma.booking.update({
             where: {
@@ -1891,7 +1906,7 @@ async function handler(
         (paymentAppData.enabled && paymentAppData.price > 0 && !booking?.paid) || // Legacy payment apps
         (eventType.requiresPayment &&
           eventType.consultationPrice &&
-          eventType.consultationPrice > 0 &&
+          Number(eventType.consultationPrice) > 0 &&
           !booking?.paid); // New consultation fee system
 
       if (noEmail !== true && !isPaidEventPendingPayment) {
@@ -1980,7 +1995,7 @@ async function handler(
     }
   }
 
-  if (booking.location?.startsWith("http")) {
+  if (booking?.location?.startsWith("http")) {
     videoCallUrl = booking.location;
   }
 
@@ -2024,7 +2039,7 @@ async function handler(
       const bookingResponse = {
         ...booking,
         user: {
-          ...booking.user,
+          ...booking?.user,
           email: null,
         },
         videoCallUrl: metadata?.videoCallUrl,
@@ -2078,12 +2093,12 @@ async function handler(
       }
 
       // Convert type of eventTypePaymentAppCredential to appId: EventTypeAppList
-      if (!booking.user) booking.user = organizerUser;
+      if (booking && !booking.user) booking.user = organizerUser;
       const payment = await handlePayment({
         evt,
         selectedEventType: eventType,
         paymentAppCredentials: eventTypePaymentAppCredential as IEventTypePaymentCredentialType,
-        booking,
+        booking: booking!,
         bookerName: fullName,
         bookerEmail,
         bookerPhoneNumber,
@@ -2114,7 +2129,7 @@ async function handler(
       const bookingResponse = {
         ...booking,
         user: {
-          ...booking.user,
+          ...booking?.user,
           email: null,
         },
         videoCallUrl: metadata?.videoCallUrl,
@@ -2278,7 +2293,7 @@ async function handler(
     (paymentAppData.enabled && paymentAppData.price > 0 && !booking?.paid) || // Legacy payment apps
     (eventType.requiresPayment &&
       eventType.consultationPrice &&
-      eventType.consultationPrice > 0 &&
+      Number(eventType.consultationPrice) > 0 &&
       !booking?.paid); // New consultation fee system
 
   if (!isPaidEventPendingPayment) {

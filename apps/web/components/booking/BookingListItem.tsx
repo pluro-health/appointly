@@ -1,4 +1,4 @@
-import type { AssignmentReason } from "@prisma/client";
+import type { AssignmentReason, EventType, Team } from "@prisma/client";
 import Link from "next/link";
 import { useState } from "react";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
@@ -190,7 +190,7 @@ function BookingListItem(booking: BookingItemProps) {
   const locationToDisplay = getSuccessPageLocationMessage(
     locationVideoCallUrl ? locationVideoCallUrl : location,
     t,
-    booking.status
+    booking.status as BookingStatus
   );
   const provider = guessEventLocationType(location);
 
@@ -667,8 +667,8 @@ function BookingListItem(booking: BookingItemProps) {
                   <div className="flex items-center gap-2">
                     <Icon name="clock" className="h-4 w-4" />
                     <span>
-                      {formatToLocalizedTime(new Date(booking.startTime), "en")} –{" "}
-                      {formatToLocalizedTime(new Date(booking.endTime), "en")}
+                      {formatToLocalizedTime({ date: new Date(booking.startTime), locale: "en" })} –{" "}
+                      {formatToLocalizedTime({ date: new Date(booking.endTime), locale: "en" })}
                     </span>
                   </div>
                 </div>
@@ -901,14 +901,6 @@ function BookingListItem(booking: BookingItemProps) {
           isRescheduled={isRescheduled}
         />
       </div>
-
-      {isBookingFromRoutingForm && (
-        <RerouteDialog
-          isOpenDialog={rerouteDialogIsOpen}
-          setIsOpenDialog={setRerouteDialogIsOpen}
-          booking={{ ...parsedBooking, eventType: parsedBooking.eventType }}
-        />
-      )}
     </>
   );
 }

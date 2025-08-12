@@ -435,6 +435,9 @@ model User {
   centerId Int?
   center   Center? @relation(fields: [centerId], references: [id], onDelete: SetNull)
 
+  // Easebuzz payments relationship
+  easebuzzPayments EasebuzzPayment[]
+
   @@unique([email])
   @@unique([email, username])
   @@unique([username, organizationId])
@@ -761,33 +764,47 @@ enum BookingStatus {
   AWAITING_HOST @map("awaiting_host")
 }
 
+enum BookingPaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
 model Booking {
-  id                           Int                               @id @default(autoincrement())
-  uid                          String                            @unique
+  id               Int                @id @default(autoincrement())
+  uid              String             @unique
   // (optional) UID based on slot start/end time & email against duplicates
-  idempotencyKey               String?                           @unique
-  user                         User?                             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId                       Int?
+  idempotencyKey   String?            @unique
+  user             User?              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId           Int?
   // User's email at the time of booking
   /// @zod.custom(imports.emailSchema)
-  userPrimaryEmail             String?
-  references                   BookingReference[]
-  eventType                    EventType?                        @relation(fields: [eventTypeId], references: [id])
-  eventTypeId                  Int?
-  title                        String
-  description                  String?
-  customInputs                 Json?
+  userPrimaryEmail String?
+  references       BookingReference[]
+  eventType        EventType?         @relation(fields: [eventTypeId], references: [id])
+  eventTypeId      Int?
+  title            String
+  description      String?
+  customInputs     Json?
   /// @zod.custom(imports.bookingResponses)
-  responses                    Json?
-  startTime                    DateTime
-  endTime                      DateTime
-  attendees                    Attendee[]
-  location                     String?
-  createdAt                    DateTime                          @default(now())
-  updatedAt                    DateTime?                         @updatedAt
-  status                       BookingStatus                     @default(ACCEPTED)
-  paid                         Boolean                           @default(false)
-  payment                      Payment[]
+  responses        Json?
+  startTime        DateTime
+  endTime          DateTime
+  attendees        Attendee[]
+  location         String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime?          @updatedAt
+  status           BookingStatus      @default(ACCEPTED)
+  paid             Boolean            @default(false)
+  payment          Payment[]
+
+  // Easebuzz payment relationship
+  easebuzzPayment EasebuzzPayment?     @relation("BookingEasebuzzPayment")
+  paymentStatus   BookingPaymentStatus @default(PENDING)
+
   destinationCalendar          DestinationCalendar?              @relation(fields: [destinationCalendarId], references: [id])
   destinationCalendarId        Int?
   cancellationReason           String?
@@ -827,7 +844,14 @@ model Booking {
   tracking                     Tracking?
   routingFormResponses         RoutingFormResponseDenormalized[]
   expenseLogs                  CreditExpenseLog[]
-  easebuzzPayments             EasebuzzPayment[]
+
+  // Appointly-specific fields for reschedule/cancel with payment features
+  appointlyRescheduleCount     Int?                      @default(0)
+  appointlyOriginalBookingDate DateTime?
+  appointlyCancellationReason  String?
+  appointlyRefundStatus        AppointlyRefundStatus?    @default(NOT_APPLICABLE)
+  appointlyRefundAmount        Decimal?                  @db.Decimal(10, 2)
+  appointlyBookingRefunds      AppointlyBookingRefunds[]
 
   @@index([eventTypeId])
   @@index([userId])
@@ -835,7 +859,9 @@ model Booking {
   @@index([recurringEventId])
   @@index([uid])
   @@index([status])
+  @@index([paymentStatus])
   @@index([startTime, endTime, status])
+  @@index([startTime, endTime, paymentStatus])
 }
 
 model Tracking {
@@ -2476,25 +2502,84 @@ enum EasebuzzPaymentStatus {
   FAILED
   CANCELLED
   REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum AppointlyRefundStatus {
+  PENDING
+  PROCESSED
+  REJECTED
+  NOT_APPLICABLE
 }
 
 model EasebuzzPayment {
-  id            Int                   @id @default(autoincrement())
-  bookingId     Int
-  booking       Booking               @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  centerId      Int?
-  center        Center?               @relation(fields: [centerId], references: [id], onDelete: SetNull)
-  subMerchantId String?
-  easebuzzTxnid String?               @unique
+  id         Int     @id @default(autoincrement())
+  bookingId  Int     @unique
+  bookingUid String? // ✅ ROBUST: Store booking UID for easier testing when dropping/recreating tables
+  booking    Booking @relation("BookingEasebuzzPayment", fields: [bookingId], references: [id], onDelete: Cascade)
+  centerId   Int?
+  center     Center? @relation(fields: [centerId], references: [id], onDelete: SetNull)
+  userId     Int?
+  user       User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // Easebuzz transaction details
+  easebuzzTxnId String?               @unique
+  merchantTxnId String?               @unique
+  easepayid     String? // Easebuzz payment ID for refund operations
   amount        Decimal               @db.Decimal(10, 2)
+  currency      String                @default("INR")
   status        EasebuzzPaymentStatus @default(PENDING)
-  /// @zod.custom(imports.easebuzzResponseDataSchema)
+
+  // Payment method and bank details
+  paymentMethod String?
+  bankRefNum    String?
+
+  // Response data and timestamps
+  easebuzzResponse Json?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  paidAt           DateTime?
+
+  // Legacy fields for backward compatibility
+  subMerchantId String?
   responseData  Json?
-  createdAt     DateTime              @default(now())
-  updatedAt     DateTime              @updatedAt
+
+  // Appointly refunds relationship
+  appointlyBookingRefunds AppointlyBookingRefunds[]
 
   @@index([bookingId])
   @@index([centerId])
-  @@index([easebuzzTxnid])
+  @@index([userId])
+  @@index([easebuzzTxnId])
+  @@index([merchantTxnId])
+  @@index([easepayid])
   @@index([status])
+  @@index([paymentMethod])
+  @@index([createdAt])
+  @@index([paidAt])
+  @@index([status, createdAt])
+  @@index([bookingId, status])
+}
+
+model AppointlyBookingRefunds {
+  id                     Int                   @id @default(autoincrement())
+  bookingId              Int
+  booking                Booking               @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  easebuzzPaymentId      Int?
+  easebuzzPayment        EasebuzzPayment?      @relation(fields: [easebuzzPaymentId], references: [id], onDelete: SetNull)
+  refundAmount           Decimal               @db.Decimal(10, 2)
+  refundPercentage       Int
+  refundStatus           AppointlyRefundStatus @default(PENDING)
+  easebuzzRefundId       String?
+  merchantRefundId       String? // Our generated merchant refund ID
+  easebuzzRefundResponse Json? // Store the full Easebuzz refund response
+  refundInitiatedAt      DateTime              @default(now())
+  refundCompletedAt      DateTime?
+  createdAt              DateTime              @default(now())
+
+  @@index([bookingId])
+  @@index([easebuzzPaymentId])
+  @@index([refundStatus])
+  @@index([easebuzzRefundId])
+  @@index([merchantRefundId])
 }

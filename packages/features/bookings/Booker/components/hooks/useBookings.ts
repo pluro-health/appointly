@@ -41,6 +41,8 @@ export interface IUseBookings {
           | "length"
           | "recurringEvent"
           | "schedulingType"
+          | "requiresPayment"
+          | "consultationPrice"
         > & {
           subsetOfUsers: Pick<
             BookerEvent["subsetOfUsers"][number],
@@ -193,7 +195,7 @@ export const useBookings = ({
 
   const createBookingMutation = useMutation({
     mutationFn: createBooking,
-    onSuccess: (booking) => {
+    onSuccess: async (booking) => {
       if (booking.isDryRun) {
         router.push("/booking/dry-run-successful");
         return;
@@ -252,6 +254,101 @@ export const useBookings = ({
             isRecurring: false,
           })
         );
+      }
+
+      // Check if this is a paid event that requires Easebuzz payment
+      const eventType = event.data;
+      const isPaidEvent =
+        eventType?.requiresPayment && eventType?.consultationPrice && eventType.consultationPrice > 0;
+
+      if (isPaidEvent && booking.paymentStatus === "PENDING") {
+        // For Easebuzz payments, DIRECTLY initiate payment and redirect to Easebuzz
+        console.log("🔄 Paid event detected, initiating payment flow...");
+
+        try {
+          // ✅ FIX 2: Improve payment redirection with better error handling
+          console.log("🚀 Calling payment initiation API...");
+
+          const paymentResponse = await fetch("/api/payments/initiate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ bookingUid: booking.uid }),
+          });
+
+          console.log("📡 Payment API response received:", {
+            ok: paymentResponse.ok,
+            status: paymentResponse.status,
+            statusText: paymentResponse.statusText,
+          });
+
+          if (!paymentResponse.ok) {
+            const errorText = await paymentResponse.text();
+            console.error("Payment API returned error:", {
+              status: paymentResponse.status,
+              statusText: paymentResponse.statusText,
+              errorText: errorText,
+            });
+            throw new Error(`Payment API failed: ${paymentResponse.status} ${paymentResponse.statusText}`);
+          }
+
+          const paymentResult = await paymentResponse.json();
+          console.log("🔍 Payment result parsed:", {
+            success: paymentResult.success,
+            hasPaymentUrl: !!paymentResult.paymentUrl,
+            paymentUrl: paymentResult.paymentUrl?.substring(0, 50) + "...",
+            message: paymentResult.message,
+            error: paymentResult.error,
+          });
+
+          if (paymentResult.success && paymentResult.paymentUrl) {
+            console.log("🌐 Initiating redirect to payment URL:", paymentResult.paymentUrl);
+
+            // ✅ FIX 2: Force immediate redirect with multiple fallback methods
+            try {
+              // Method 1: Direct window.location assignment
+              window.location.href = paymentResult.paymentUrl;
+
+              // Method 2: If direct assignment doesn't work, try replace
+              setTimeout(() => {
+                if (window.location.href !== paymentResult.paymentUrl) {
+                  console.log("🔄 Fallback: Using window.location.replace");
+                  window.location.replace(paymentResult.paymentUrl);
+                }
+              }, 1000);
+
+              // Method 3: Final fallback using router if still not redirected
+              setTimeout(() => {
+                if (window.location.href !== paymentResult.paymentUrl) {
+                  console.log("🔄 Final fallback: Opening in new window");
+                  window.open(paymentResult.paymentUrl, "_self");
+                }
+              }, 2000);
+            } catch (redirectError) {
+              console.error("All redirect methods failed:", redirectError);
+              // Final fallback - go to intermediate payment page
+              router.push(`/payment/initiate?bookingUid=${booking.uid}&payment=pending`);
+            }
+
+            return; // Prevent further execution
+          } else {
+            throw new Error(paymentResult.message || "No payment URL received from server");
+          }
+        } catch (error) {
+          console.error("Payment initiation failed:", {
+            error: error instanceof Error ? error.message : error,
+            bookingUid: booking.uid,
+            timestamp: new Date().toISOString(),
+          });
+
+          // Fallback if direct payment fails
+          console.log("🔄 Using fallback payment page due to error");
+          router.push(
+            `/payment/initiate?bookingUid=${booking.uid}&payment=pending&error=${encodeURIComponent(
+              error instanceof Error ? error.message : "Unknown error"
+            )}`
+          );
+          return;
+        }
       }
 
       if (paymentUid) {

@@ -22,6 +22,7 @@ import { formatEventFromTime } from "../../utils/dates";
 import { useBookerTime } from "../hooks/useBookerTime";
 import type { UseBookingFormReturnType } from "../hooks/useBookingForm";
 import type { IUseBookingErrors, IUseBookingLoadingStates } from "../hooks/useBookings";
+import { useEasebuzzPaymentFlow } from "../hooks/usePaymentFlow";
 import { BookingFields } from "./BookingFields";
 import { FormSkeleton } from "./Skeleton";
 
@@ -87,11 +88,13 @@ export const BookEventForm = ({
   const timeslot = useBookerStore((state) => state.selectedTimeslot);
   const username = useBookerStore((state) => state.username);
   const isInstantMeeting = useBookerStore((state) => state.isInstantMeeting);
+  const eventId = useBookerStore((state) => state.eventId);
   const isPlatformBookerEmbed = useIsPlatformBookerEmbed();
   const { timeFormat, timezone } = useBookerTime();
 
   const [responseVercelIdHeader] = useState<string | null>(null);
   const { t, i18n } = useLocale();
+  const { initiatePayment } = useEasebuzzPaymentFlow();
 
   const isPaidEvent = useMemo(() => {
     // Check for consultation fee first
@@ -249,11 +252,25 @@ export const BookEventForm = ({
         )}
         <div className="modalsticky mt-auto flex justify-end space-x-2 rtl:space-x-reverse">
           {isInstantMeeting ? (
-            <Button type="submit" color="primary" loading={loadingStates.creatingInstantBooking}>
-              {!isPaidEvent ? t("confirm") : paymentButtonOptions.isRemoteOnly ? t("pay_now") : t("pay_now")}
+            // Instant meeting: single Confirm button
+            <Button
+              type="submit"
+              color="primary"
+              loading={loadingStates.creatingInstantBooking}
+              onClick={() => {
+                if (isPaidEvent) {
+                  // ✅ Paid instant meeting → trigger payment
+                  initiatePayment(eventId || 0, bookingForm);
+                } else {
+                  // ✅ Free instant meeting → just confirm
+                  onSubmit();
+                }
+              }}>
+              {t("confirm")}
             </Button>
           ) : (
             <>
+              {/* Back Button */}
               {!!onCancel && (
                 <Button
                   color="minimal"
@@ -265,84 +282,35 @@ export const BookEventForm = ({
                 </Button>
               )}
 
-              {/* Show both payment buttons for physical locations */}
-              {isPaidEvent &&
-              paymentButtonOptions.isPhysicalLocation &&
-              renderConfirmNotVerifyEmailButtonCond &&
-              !rescheduleUid ? (
-                <>
-                  <Button
-                    type="button"
-                    color="secondary"
-                    disabled={
-                      (!!shouldRenderCaptcha && !watchedCfToken) ||
-                      isTimeslotUnavailable ||
-                      confirmButtonDisabled
+              {/* Single Confirm Button for all cases */}
+              <Button
+                type="button"
+                color="primary"
+                disabled={
+                  (!!shouldRenderCaptcha && !watchedCfToken) || isTimeslotUnavailable || confirmButtonDisabled
+                }
+                loading={
+                  loadingStates.creatingBooking ||
+                  loadingStates.creatingRecurringBooking ||
+                  isVerificationCodeSending
+                }
+                className={classNames?.confirmButton}
+                onClick={() => {
+                  if (isPaidEvent && !rescheduleUid) {
+                    if (eventId) {
+                      initiatePayment(eventId || 0, bookingForm);
                     }
-                    loading={
-                      loadingStates.creatingBooking ||
-                      loadingStates.creatingRecurringBooking ||
-                      isVerificationCodeSending
-                    }
-                    onClick={() => {
-                      // Set payment method to "later" and submit
-                      setFormValues({ paymentMethod: "later" });
-                      onSubmit();
-                    }}
-                    data-testid="pay-later-button">
-                    {t("pay_later")}
-                  </Button>
-                  <Button
-                    type="submit"
-                    color="primary"
-                    disabled={
-                      (!!shouldRenderCaptcha && !watchedCfToken) ||
-                      isTimeslotUnavailable ||
-                      confirmButtonDisabled
-                    }
-                    loading={
-                      loadingStates.creatingBooking ||
-                      loadingStates.creatingRecurringBooking ||
-                      isVerificationCodeSending
-                    }
-                    className={classNames?.confirmButton}
-                    onClick={() => {
-                      // Set payment method to "now" and submit
-                      setFormValues({ paymentMethod: "now" });
-                    }}
-                    data-testid="pay-now-button">
-                    {t("pay_now")}
-                  </Button>
-                </>
-              ) : (
-                <Button
-                  type="submit"
-                  color="primary"
-                  disabled={
-                    (!!shouldRenderCaptcha && !watchedCfToken) ||
-                    isTimeslotUnavailable ||
-                    confirmButtonDisabled
+                    // ✅ Paid event → trigger payment gateway
+                  } else {
+                    // ✅ Free or reschedule → directly confirm
+                    onSubmit();
                   }
-                  loading={
-                    loadingStates.creatingBooking ||
-                    loadingStates.creatingRecurringBooking ||
-                    isVerificationCodeSending
-                  }
-                  className={classNames?.confirmButton}
-                  data-testid={
-                    rescheduleUid && bookingData ? "confirm-reschedule-button" : "confirm-book-button"
-                  }>
-                  {rescheduleUid && bookingData
-                    ? t("reschedule")
-                    : renderConfirmNotVerifyEmailButtonCond
-                    ? !isPaidEvent
-                      ? t("confirm")
-                      : paymentButtonOptions.isRemoteOnly
-                      ? t("pay_now")
-                      : t("pay_now") // Default to Pay Now for single button scenarios
-                    : t("verify_email_button")}
-                </Button>
-              )}
+                }}
+                data-testid={
+                  rescheduleUid && bookingData ? "confirm-reschedule-button" : "confirm-book-button"
+                }>
+                {rescheduleUid && bookingData ? t("reschedule") : t("confirm")}
+              </Button>
             </>
           )}
         </div>

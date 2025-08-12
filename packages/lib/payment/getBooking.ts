@@ -23,6 +23,10 @@ async function getEventType(id: number) {
       recurringEvent: true,
       requiresConfirmation: true,
       metadata: true,
+      // Add consultation fee fields
+      requiresPayment: true,
+      consultationPrice: true,
+      paymentCurrency: true,
     },
   });
 }
@@ -69,6 +73,10 @@ export async function getBooking(bookingId: number) {
               parentId: true,
             },
           },
+          // Add consultation fee fields
+          requiresPayment: true,
+          consultationPrice: true,
+          paymentCurrency: true,
         },
       },
       metadata: true,

@@ -240,7 +240,7 @@ function buildNewBookingData(params: CreateBookingParams) {
       if (
         eventType.eventTypeData.requiresPayment &&
         eventType.eventTypeData.consultationPrice &&
-        eventType.eventTypeData.consultationPrice > 0
+        Number(eventType.eventTypeData.consultationPrice) > 0
       ) {
         return BookingStatus.PENDING;
       }

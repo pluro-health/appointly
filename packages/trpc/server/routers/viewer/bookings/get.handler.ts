@@ -1,6 +1,6 @@
 import type { Booking, Prisma, Prisma as PrismaClientType } from "@prisma/client";
 import type { Kysely } from "kysely";
-import { type SelectQueryBuilder } from "kysely";
+import { type SelectQueryBuilder, sql } from "kysely";
 import { jsonObjectFrom, jsonArrayFrom } from "kysely/helpers/postgres";
 
 import dayjs from "@calcom/dayjs";
@@ -154,8 +154,8 @@ export async function getBookings({
       query: kysely
         .selectFrom("Booking")
         .select("Booking.id")
-        .select("Booking.startTime")
-        .select("Booking.endTime")
+        .select(sql<Date>`"Booking"."startTime" AT TIME ZONE 'UTC'`.as("startTime"))
+        .select(sql<Date>`"Booking"."endTime" AT TIME ZONE 'UTC'`.as("endTime"))
         .select("Booking.createdAt")
         .select("Booking.updatedAt")
         .where("userId", "in", filters.userIds),
@@ -168,8 +168,8 @@ export async function getBookings({
         query: kysely
           .selectFrom("Booking")
           .select("Booking.id")
-          .select("Booking.startTime")
-          .select("Booking.endTime")
+          .select(sql<Date>`"Booking"."startTime" AT TIME ZONE 'UTC'`.as("startTime"))
+          .select(sql<Date>`"Booking"."endTime" AT TIME ZONE 'UTC'`.as("endTime"))
           .select("Booking.createdAt")
           .select("Booking.updatedAt")
           .innerJoin("Attendee", "Attendee.bookingId", "Booking.id")
@@ -184,8 +184,8 @@ export async function getBookings({
         query: kysely
           .selectFrom("Booking")
           .select("Booking.id")
-          .select("Booking.startTime")
-          .select("Booking.endTime")
+          .select(sql<Date>`"Booking"."startTime" AT TIME ZONE 'UTC'`.as("startTime"))
+          .select(sql<Date>`"Booking"."endTime" AT TIME ZONE 'UTC'`.as("endTime"))
           .select("Booking.createdAt")
           .select("Booking.updatedAt")
           .innerJoin("Attendee", "Attendee.bookingId", "Booking.id")
@@ -200,8 +200,8 @@ export async function getBookings({
       query: kysely
         .selectFrom("Booking")
         .select("Booking.id")
-        .select("Booking.startTime")
-        .select("Booking.endTime")
+        .select(sql<Date>`"Booking"."startTime" AT TIME ZONE 'UTC'`.as("startTime"))
+        .select(sql<Date>`"Booking"."endTime" AT TIME ZONE 'UTC'`.as("endTime"))
         .select("Booking.createdAt")
         .select("Booking.updatedAt")
         .where("Booking.userId", "=", user.id),
@@ -212,8 +212,8 @@ export async function getBookings({
       query: kysely
         .selectFrom("Booking")
         .select("Booking.id")
-        .select("Booking.startTime")
-        .select("Booking.endTime")
+        .select(sql<Date>`"Booking"."startTime" AT TIME ZONE 'UTC'`.as("startTime"))
+        .select(sql<Date>`"Booking"."endTime" AT TIME ZONE 'UTC'`.as("endTime"))
         .select("Booking.createdAt")
         .select("Booking.updatedAt")
         .innerJoin("Attendee", "Attendee.bookingId", "Booking.id")
@@ -225,8 +225,8 @@ export async function getBookings({
       query: kysely
         .selectFrom("Booking")
         .select("Booking.id")
-        .select("Booking.startTime")
-        .select("Booking.endTime")
+        .select(sql<Date>`"Booking"."startTime" AT TIME ZONE 'UTC'`.as("startTime"))
+        .select(sql<Date>`"Booking"."endTime" AT TIME ZONE 'UTC'`.as("endTime"))
         .select("Booking.createdAt")
         .select("Booking.updatedAt")
         .innerJoin("BookingSeat", "BookingSeat.bookingId", "Booking.id")
@@ -242,8 +242,8 @@ export async function getBookings({
         query: kysely
           .selectFrom("Booking")
           .select("Booking.id")
-          .select("Booking.startTime")
-          .select("Booking.endTime")
+          .select(sql<Date>`"Booking"."startTime" AT TIME ZONE 'UTC'`.as("startTime"))
+          .select(sql<Date>`"Booking"."endTime" AT TIME ZONE 'UTC'`.as("endTime"))
           .select("Booking.createdAt")
           .select("Booking.updatedAt")
           .innerJoin("Attendee", "Attendee.bookingId", "Booking.id")
@@ -258,8 +258,8 @@ export async function getBookings({
         query: kysely
           .selectFrom("Booking")
           .select("Booking.id")
-          .select("Booking.startTime")
-          .select("Booking.endTime")
+          .select(sql<Date>`"Booking"."startTime" AT TIME ZONE 'UTC'`.as("startTime"))
+          .select(sql<Date>`"Booking"."endTime" AT TIME ZONE 'UTC'`.as("endTime"))
           .select("Booking.createdAt")
           .select("Booking.updatedAt")
           .innerJoin("Attendee", "Attendee.bookingId", "Booking.id")
@@ -276,8 +276,8 @@ export async function getBookings({
         query: kysely
           .selectFrom("Booking")
           .select("Booking.id")
-          .select("Booking.startTime")
-          .select("Booking.endTime")
+          .select(sql<Date>`"Booking"."startTime" AT TIME ZONE 'UTC'`.as("startTime"))
+          .select(sql<Date>`"Booking"."endTime" AT TIME ZONE 'UTC'`.as("endTime"))
           .select("Booking.createdAt")
           .select("Booking.updatedAt")
           .innerJoin("EventType", "EventType.id", "Booking.eventTypeId")
@@ -293,8 +293,8 @@ export async function getBookings({
         query: kysely
           .selectFrom("Booking")
           .select("Booking.id")
-          .select("Booking.startTime")
-          .select("Booking.endTime")
+          .select(sql<Date>`"Booking"."startTime" AT TIME ZONE 'UTC'`.as("startTime"))
+          .select(sql<Date>`"Booking"."endTime" AT TIME ZONE 'UTC'`.as("endTime"))
           .select("Booking.createdAt")
           .select("Booking.updatedAt")
           .where("Booking.userId", "in", userIdsWhereUserIsAdminOrOwner),
@@ -431,7 +431,7 @@ export async function getBookings({
           "Booking.metadata",
           "Booking.uid",
           eb
-            .cast<Prisma.JsonValue>( // Target TypeScript type
+            .cast(
               eb.ref("Booking.responses"), // Source column
               "jsonb" // Target SQL type
             )
@@ -439,7 +439,7 @@ export async function getBookings({
           "Booking.recurringEventId",
           "Booking.location",
           eb
-            .cast<BookingStatus>(
+            .cast(
               eb
                 .case()
                 .when("Booking.status", "=", "cancelled")
@@ -461,6 +461,8 @@ export async function getBookings({
           "Booking.fromReschedule",
           "Booking.rescheduled",
           "Booking.isRecorded",
+          "Booking.appointlyRefundStatus",
+          "Booking.appointlyRefundAmount",
           jsonObjectFrom(
             eb
               .selectFrom("App_RoutingForms_FormResponse")
@@ -489,7 +491,7 @@ export async function getBookings({
                 "EventType.disableCancelling",
                 "EventType.disableRescheduling",
                 eb
-                  .cast<SchedulingType | null>(
+                  .cast(
                     eb
                       .case()
                       .when("EventType.schedulingType", "=", "roundRobin")
@@ -539,6 +541,17 @@ export async function getBookings({
               .select(["Payment.paymentOption", "Payment.amount", "Payment.currency", "Payment.success"])
               .whereRef("Payment.bookingId", "=", "Booking.id")
           ).as("payment"),
+          jsonObjectFrom(
+            eb
+              .selectFrom("EasebuzzPayment")
+              .select([
+                "EasebuzzPayment.id",
+                "EasebuzzPayment.amount",
+                "EasebuzzPayment.currency",
+                "EasebuzzPayment.status",
+              ])
+              .whereRef("EasebuzzPayment.bookingId", "=", "Booking.id")
+          ).as("easebuzzPayment"),
           jsonObjectFrom(
             eb
               .selectFrom("users")
@@ -899,7 +912,7 @@ function addStatusesQueryFilters(query: BookingsUnionQuery, statuses: InputBySta
         statuses.map((status) => {
           if (status === "upcoming") {
             return and([
-              eb("Booking.endTime", ">=", new Date()),
+              eb("Booking.endTime", ">=", sql<Date>`now()`),
               or([
                 and([eb("Booking.recurringEventId", "is not", null), eb("Booking.status", "=", "accepted")]),
                 and([
@@ -912,7 +925,7 @@ function addStatusesQueryFilters(query: BookingsUnionQuery, statuses: InputBySta
 
           if (status === "recurring") {
             return and([
-              eb("Booking.endTime", ">=", new Date()),
+              eb("Booking.endTime", ">=", sql<Date>`now()`),
               eb("Booking.recurringEventId", "is not", null),
               eb("Booking.status", "not in", ["cancelled", "rejected"]),
             ]);
@@ -920,7 +933,7 @@ function addStatusesQueryFilters(query: BookingsUnionQuery, statuses: InputBySta
 
           if (status === "past") {
             return and([
-              eb("Booking.endTime", "<=", new Date()),
+              eb("Booking.endTime", "<=", sql<Date>`now()`),
               eb("Booking.status", "not in", ["cancelled", "rejected"]),
             ]);
           }
@@ -930,7 +943,7 @@ function addStatusesQueryFilters(query: BookingsUnionQuery, statuses: InputBySta
           }
 
           if (status === "unconfirmed") {
-            return and([eb("Booking.endTime", ">=", new Date()), eb("Booking.status", "=", "pending")]);
+            return and([eb("Booking.endTime", ">=", sql<Date>`now()`), eb("Booking.status", "=", "pending")]);
           }
           return and([]);
         })

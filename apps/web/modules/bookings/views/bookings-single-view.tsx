@@ -578,7 +578,7 @@ export default function Success(props: PageProps) {
                               </div>
                               <div className="mt-4">
                                 <Button
-                                  onClick={() => router.push(`/${eventType.slug || ""}`)}
+                                  onClick={() => router.push(`/${routerQuery.eventTypeSlug || ""}`)}
                                   className="bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600">
                                   Book Appointment Again
                                 </Button>
