@@ -719,8 +719,14 @@ export async function getBookings({
           currency: booking.eventType?.currency || "usd",
           metadata: EventTypeMetaDataSchema.parse(booking.eventType?.metadata || {}),
         },
-        startTime: booking.startTime.toISOString(),
-        endTime: booking.endTime.toISOString(),
+        startTime: (() => {
+          const date = new Date(booking.startTime);
+          return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString();
+        })(),
+        endTime: (() => {
+          const date = new Date(booking.endTime);
+          return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString();
+        })(),
       };
     })
   );
