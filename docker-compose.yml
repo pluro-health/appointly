@@ -1,0 +1,100 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: calcom
+      POSTGRES_USER: calcom
+      POSTGRES_PASSWORD: calcom_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  api-v2:
+    build:
+      context: .
+      dockerfile: apps/api/v2/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://calcom:calcom_password@postgres:5432/calcom
+      DATABASE_DIRECT_URL: postgresql://calcom:calcom_password@postgres:5432/calcom
+      REDIS_URL: redis://redis:6379
+      PORT: 80
+    ports:
+      - "5555:80"
+    depends_on:
+      - postgres
+      - redis
+
+  api-v1:
+    build:
+      context: .
+      dockerfile: Dockerfile.api-v1
+      args:
+        NEXT_PUBLIC_API_V2_ROOT_URL: http://api-v2:80
+    environment:
+      DATABASE_URL: postgresql://calcom:calcom_password@postgres:5432/calcom
+      DATABASE_DIRECT_URL: postgresql://calcom:calcom_password@postgres:5432/calcom
+      REDIS_URL: redis://redis:6379
+      NEXT_PUBLIC_API_V2_ROOT_URL: http://localhost:5555
+      PORT: 3003
+    ports:
+      - "3003:3003"
+    depends_on:
+      - postgres
+      - redis
+      - api-v2
+
+  api-proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile.api-proxy
+    environment:
+      PORT: 3002
+    ports:
+      - "3002:3002"
+    depends_on:
+      - api-v1
+      - api-v2
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      args:
+        NEXT_PUBLIC_API_V2_ROOT_URL: http://localhost:5555
+        NEXT_PUBLIC_API_URL: http://localhost:3002
+    environment:
+      DATABASE_URL: postgresql://calcom:calcom_password@postgres:5432/calcom
+      DATABASE_DIRECT_URL: postgresql://calcom:calcom_password@postgres:5432/calcom
+      REDIS_URL: redis://redis:6379
+      NEXTAUTH_URL: http://localhost:3000
+      NEXT_PUBLIC_API_URL: http://localhost:3002
+      NEXT_PUBLIC_API_V2_ROOT_URL: http://localhost:5555
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api-proxy
+      - postgres
+      - redis
+
+  db-setup:
+    build:
+      context: .
+      dockerfile: Dockerfile.db-setup
+    environment:
+      DATABASE_URL: postgresql://calcom:calcom_password@postgres:5432/calcom
+      DATABASE_DIRECT_URL: postgresql://calcom:calcom_password@postgres:5432/calcom
+    depends_on:
+      - postgres
+    profiles: ["setup"]
+
+volumes:
+  postgres-data:
