@@ -163,7 +163,7 @@ async function handler(req: NextRequest) {
 
     // 6. Generate unique merchant transaction ID
     const timestamp = Date.now();
-    const merchantTxnId = `cal_${bookingId}_${timestamp}`;
+    const merchantTxnId = `appointly_${bookingId}_${timestamp}`;
 
     logger.info("🆔 Generated transaction ID", {
       merchantTxnId,

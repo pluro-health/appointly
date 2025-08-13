@@ -122,7 +122,7 @@ async function handler(req: NextRequest) {
 
     // 4. Generate unique IDs
     const bookingUid = `booking_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
-    const merchantTxnId = `cal_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+    const merchantTxnId = `appointly_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
 
     console.log("Generated IDs:", {
       bookingUid: bookingUid.substring(0, 20) + "...",

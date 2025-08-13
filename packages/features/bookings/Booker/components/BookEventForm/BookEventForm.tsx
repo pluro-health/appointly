@@ -78,6 +78,7 @@ export const BookEventForm = ({
       | "consultationPrice"
       | "paymentCurrency"
       | "requiresPayment"
+      | "length"
     > | null;
   };
 }) => {
@@ -94,7 +95,7 @@ export const BookEventForm = ({
 
   const [responseVercelIdHeader] = useState<string | null>(null);
   const { t, i18n } = useLocale();
-  const { initiatePayment } = useEasebuzzPaymentFlow();
+  const { initiatePayment } = useEasebuzzPaymentFlow(eventType?.length);
 
   const isPaidEvent = useMemo(() => {
     // Check for consultation fee first

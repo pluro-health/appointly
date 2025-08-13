@@ -73,7 +73,7 @@ async function initiateEasebuzzPayment(data: PaymentInitiationData): Promise<Pay
 }
 
 // Export both the new name and the old name for compatibility
-export function useEasebuzzPaymentFlow() {
+export function useEasebuzzPaymentFlow(eventTypeLength?: number) {
   const router = useRouter();
   const { t } = useLocale();
   const timeslot = useBookerStore((state) => state.selectedTimeslot);
@@ -106,6 +106,13 @@ export function useEasebuzzPaymentFlow() {
       return;
     }
 
+    const duration = selectedDuration || eventTypeLength;
+    if (!duration) {
+      console.error("No duration selected or provided");
+      showToast(t("please_select_duration"), "error");
+      return;
+    }
+
     console.log("🚀 Starting payment initiation process...");
 
     const formData = bookingForm.getValues();
@@ -119,7 +126,7 @@ export function useEasebuzzPaymentFlow() {
     const paymentData: PaymentInitiationData = {
       eventTypeId,
       startTime: timeslot,
-      endTime: new Date(new Date(timeslot).getTime() + (selectedDuration || 30) * 60 * 1000).toISOString(),
+      endTime: new Date(new Date(timeslot).getTime() + duration * 60 * 1000).toISOString(),
       responses: formData.responses || {},
       timeZone: formData.timeZone || "UTC",
       language: formData.language || "en",

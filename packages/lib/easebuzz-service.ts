@@ -392,7 +392,7 @@ export class EasebuzzService {
       // Step 2: Prepare amounts and transaction ID
       console.log(" Step 2: Preparing payment amounts and transaction ID...");
       const finalAmount = (amount || bookingData.amount).toFixed(2);
-      const txnid = `cal_${bookingData.id}_${Date.now()}`;
+      const txnid = `appointly_${bookingData.id}_${Date.now()}`;
 
       console.log("✅ Step 2 complete:", { finalAmount, txnid });
 
