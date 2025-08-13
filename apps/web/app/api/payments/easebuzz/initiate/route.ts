@@ -143,6 +143,7 @@ async function handler(req: NextRequest) {
         userPrimaryEmail: responses.email || "",
         responses: responses,
         metadata: metadata || {},
+        location: responses.location?.optionValue || responses.location?.value || "",
         eventType: {
           connect: { id: eventTypeId },
         },
