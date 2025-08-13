@@ -39,7 +39,10 @@ type EventTypeRelations = {
   destinationCalendar?: DestinationCalendar | null;
   calVideoSettings?: CalVideoSettings | null;
 };
-export type DatabaseEventType = Omit<EventType, "allowReschedulingCancelledBookings"> & EventTypeRelations;
+export type DatabaseEventType = Omit<EventType, "allowReschedulingCancelledBookings" | "paymentCurrency"> &
+  EventTypeRelations & {
+    paymentCurrency?: string | null;
+  };
 
 type Input = Pick<
   DatabaseEventType,

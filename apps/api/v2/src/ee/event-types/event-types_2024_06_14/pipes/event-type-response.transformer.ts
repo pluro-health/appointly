@@ -8,16 +8,17 @@ import {
   OutputEventTypesService_2024_06_14,
 } from "../services/output-event-types.service";
 
-type EventTypeResponse = DatabaseEventType & { ownerId: number };
+type EventTypeResponse = DatabaseEventType & { ownerId: number } & Record<string, any>;
 
 @Injectable()
 export class EventTypeResponseTransformPipe implements PipeTransform {
   constructor(private readonly outputEventTypesService: OutputEventTypesService_2024_06_14) {}
 
   private transformEventType(eventType: EventTypeResponse): EventTypeOutput_2024_06_14 {
+    const { paymentCurrency, ...filteredEventType } = eventType;
     return plainToClass(
       EventTypeOutput_2024_06_14,
-      this.outputEventTypesService.getResponseEventType(eventType.ownerId, eventType, false),
+      this.outputEventTypesService.getResponseEventType(filteredEventType.ownerId, filteredEventType, false),
       { strategy: "exposeAll" }
     );
   }

@@ -143,8 +143,16 @@ export class EventTypesController_2024_04_15 {
         true
       );
 
+      const transformedEvent = event
+        ? {
+            ...event,
+            consultationPrice: event.consultationPrice ? Number(event.consultationPrice) : null,
+            paymentCurrency: event.paymentCurrency ?? "",
+          }
+        : null;
+
       return {
-        data: event,
+        data: transformedEvent,
         status: SUCCESS_STATUS,
       };
     } catch (err) {

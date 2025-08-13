@@ -221,7 +221,7 @@ export class GetBookingsDataEntry {
 
   @IsEnum(Status)
   @ApiProperty({ enum: Status, type: String })
-  status!: Status;
+  status!: Status | null;
 
   @IsBoolean()
   @ApiProperty({ type: Boolean })

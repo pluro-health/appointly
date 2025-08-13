@@ -2,7 +2,7 @@ import { CreateBookingInput_2024_04_15 } from "@/ee/bookings/2024-04-15/inputs/c
 import { CreateRecurringBookingInput_2024_04_15 } from "@/ee/bookings/2024-04-15/inputs/create-recurring-booking.input";
 import { MarkNoShowInput_2024_04_15 } from "@/ee/bookings/2024-04-15/inputs/mark-no-show.input";
 import { GetBookingOutput_2024_04_15 } from "@/ee/bookings/2024-04-15/outputs/get-booking.output";
-import { GetBookingsOutput_2024_04_15 } from "@/ee/bookings/2024-04-15/outputs/get-bookings.output";
+import { GetBookingsOutput_2024_04_15, Status } from "@/ee/bookings/2024-04-15/outputs/get-bookings.output";
 import { MarkNoShowOutput_2024_04_15 } from "@/ee/bookings/2024-04-15/outputs/mark-no-show.output";
 import { PlatformBookingsService } from "@/ee/bookings/shared/platform-bookings.service";
 import { sha256Hash, isApiKey, stripApiKey } from "@/lib/api-key";
@@ -113,8 +113,8 @@ export class BookingsController_2024_04_15 {
   ) {}
 
   @Get("/")
-  @UseGuards(ApiAuthGuard)
   @Permissions([BOOKING_READ])
+  @UseGuards(ApiAuthGuard)
   @ApiQuery({ name: "filters[status]", enum: Status_2024_04_15, required: true })
   @ApiQuery({ name: "limit", type: "number", required: false })
   @ApiQuery({ name: "cursor", type: "number", required: false })
@@ -125,6 +125,7 @@ export class BookingsController_2024_04_15 {
     const { filters, cursor, limit } = queryParams;
     const bookingListingByStatus = filters?.status ?? Status_2024_04_15["upcoming"];
     const profile = this.usersService.getUserMainProfile(user);
+
     const bookings = await getAllUserBookings({
       bookingListingByStatus: [bookingListingByStatus],
       skip: cursor ?? 0,
@@ -137,13 +138,22 @@ export class BookingsController_2024_04_15 {
       },
     });
 
+    // Transform the bookings to ensure proper typing
+    const transformedBookings = {
+      ...bookings,
+      bookings: bookings.bookings.map((booking) => ({
+        ...booking,
+        status: booking.status as Status,
+      })),
+    };
+
     let nextCursor = null;
     if (bookings.totalCount > (cursor ?? 0) + (limit ?? 10)) {
       nextCursor = (cursor ?? 0) + (limit ?? 10);
     }
     return {
       status: SUCCESS_STATUS,
-      data: { ...bookings, nextCursor },
+      data: { ...transformedBookings, nextCursor },
     };
   }
 

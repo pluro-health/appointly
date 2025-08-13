@@ -376,7 +376,7 @@ class PublicEventTypeOutput {
   consultationPrice?: number | null;
 
   @IsString()
-  @ApiProperty()
+  @ApiProperty({ type: String, nullable: true })
   paymentCurrency!: string;
 
   @IsBoolean()
