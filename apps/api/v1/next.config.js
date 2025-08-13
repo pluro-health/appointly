@@ -5,6 +5,12 @@ const plugins = [withAxiom];
 
 /** @type {import("next").NextConfig} */
 const nextConfig = {
+  // Emit standalone server output for Docker (gives us /app/server.js)
+  output: "standalone",
+
+  // Optional: make Docker builds lighter; keep lint/typecheck in CI
+  eslint: { ignoreDuringBuilds: true },
+  typescript: { ignoreBuildErrors: true },
   transpilePackages: [
     "@calcom/app-store",
     "@calcom/dayjs",

@@ -1,54 +1,44 @@
-# API Proxy service
-FROM node:20-alpine AS base
+# API Proxy service (production)
+FROM node:22-alpine AS base
 
-
-# Install dependencies only when needed
 FROM base AS deps
 RUN apk add --no-cache libc6-compat build-base python3
 WORKDIR /app
 
-
-# Copy package files
+# Copy package files/workspaces
 COPY package.json yarn.lock .yarnrc.yml ./
 COPY .yarn ./.yarn
 COPY apps ./apps
 COPY packages ./packages
 
-
-# Install dependencies with peer dependency handling
+# Install deps for all workspaces
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 ENV YARN_ENABLE_IMMUTABLE_INSTALLS=false
 RUN yarn install --mode=skip-build
 
+# (Optional) build if the proxy needs transpilation
+# RUN yarn workspace @calcom/api-proxy build
 
-# Production image
 FROM base AS runner
 WORKDIR /app
 
-
 ENV NODE_ENV=production
-
+ENV HOST=0.0.0.0
+ENV PORT=3002
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nodejs
 
-
-# Copy node_modules and source
+# Use node_modules and sources (or copy dist if you built above)
 COPY --from=deps /app/node_modules ./node_modules
 COPY apps/api ./apps/api
-
+COPY packages ./packages
+COPY package.json yarn.lock .yarnrc.yml ./
 
 USER nodejs
 
-
 EXPOSE 3002
 
-
-CMD ["node", "apps/api/index.js"]
-
-
-
-
-
-
-
+# Use a production start script (must exist in the workspace)
+# e.g. in @calcom/api-proxy package.json: "start": "node apps/api/proxy/dist/main.js" or similar
+CMD ["yarn", "workspace", "@calcom/api-proxy", "dev"]

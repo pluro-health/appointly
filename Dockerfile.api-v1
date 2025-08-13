@@ -1,12 +1,10 @@
 # Multi-stage build for API v1 (Next.js API routes)
-FROM node:20-alpine AS base
-
+FROM node:22-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
-RUN apk add --no-cache libc6-compat build-base python3
+RUN apk add --no-cache libc6-compat build-base python3 bash
 WORKDIR /app
-
 
 # Copy package files
 COPY package.json yarn.lock .yarnrc.yml ./
@@ -14,74 +12,68 @@ COPY .yarn ./.yarn
 COPY apps ./apps
 COPY packages ./packages
 
-
 # Install dependencies with peer dependency handling
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 ENV YARN_ENABLE_IMMUTABLE_INSTALLS=false
 RUN yarn install --mode=skip-build
 
-
 # Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
+
+# Bring node_modules and source
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# 👇 Accept build-time args for API v2 base (internal URL)
+ARG API_V2_ROOT_URL
+ARG NEXT_PUBLIC_API_V2_ROOT_URL
+
+# 👇 Export them as env so next.config can read them during build
+#    and provide sane defaults for Docker network if args are missing.
+ENV API_V2_ROOT_URL=${API_V2_ROOT_URL:-http://api-v2:80}
+ENV NEXT_PUBLIC_API_V2_ROOT_URL=${NEXT_PUBLIC_API_V2_ROOT_URL:-http://api-v2:80}
 
 # Set environment variables
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-
 # Build the application
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN yarn workspace @calcom/api build
-
 
 # Production image, copy all the files and run next
 FROM base AS runner
 WORKDIR /app
 
-
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV BUILD_STANDALONE=true
-
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-
-# Copy the public folder
-COPY --from=builder /app/apps/api/v1/public ./apps/api/v1/public
-
-
-# Set the correct permission for prerender cache
-RUN mkdir .next
-RUN chown nextjs:nodejs .next
-
-
-# Copy standalone build
-COPY --from=builder --chown=nextjs:nodejs /app/apps/api/v1/.next/standalone/apps/api/v1/server.js ./server.js
-COPY --from=builder --chown=nextjs:nodejs /app/apps/api/v1/.next/standalone/node_modules ./node_modules
-COPY --from=builder --chown=nextjs:nodejs /app/apps/api/v1/.next/standalone/package.json ./package.json
-COPY --from=builder --chown=nextjs:nodejs /app/apps/api/v1/.next/static ./apps/api/v1/.next/static
-
-
-USER nextjs
-
-
-EXPOSE 3003
-
-
 ENV PORT=3003
 ENV HOSTNAME="0.0.0.0"
 
+# 👇 Keep runtime envs too (in case code reads them at runtime)
+ENV API_V2_ROOT_URL=${API_V2_ROOT_URL:-http://api-v2:80}
+ENV NEXT_PUBLIC_API_V2_ROOT_URL=${NEXT_PUBLIC_API_V2_ROOT_URL:-http://api-v2:80}
 
+# Non-root
+RUN addgroup --system --gid 1001 nodejs \
+ && adduser --system --uid 1001 nextjs
+
+# (Optional) public assets if you have any
+# COPY --from=builder /app/apps/api/v1/public ./apps/api/v1/public
+
+# Set the correct permission for prerender cache
+RUN mkdir -p .next && chown -R nextjs:nodejs .next
+
+# ⬇️ Copy the ENTIRE standalone folder so /app/server.js exists
+COPY --from=builder --chown=nextjs:nodejs /app/apps/api/v1/.next/standalone ./
+# ⬇️ Static assets must live at the app path
+COPY --from=builder --chown=nextjs:nodejs /app/apps/api/v1/.next/static ./apps/api/v1/.next/static
+
+USER nextjs
+
+EXPOSE 3003
+
+# Entry point produced by Next standalone build
 CMD ["node", "server.js"]
-
-
-
-
-
-
-

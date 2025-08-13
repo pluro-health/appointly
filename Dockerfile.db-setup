@@ -1,45 +1,38 @@
 # Database setup service for migrations and seeding
-FROM node:20-alpine AS base
-
+FROM node:22-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
-RUN apk add --no-cache libc6-compat build-base python3
+RUN apk add --no-cache libc6-compat build-base python3 bash curl postgresql-client openssl
 WORKDIR /app
 
-
-# Copy package files
+# Copy package files and workspaces
 COPY package.json yarn.lock .yarnrc.yml ./
 COPY .yarn ./.yarn
 COPY apps ./apps
 COPY packages ./packages
-
+COPY scripts/db-setup.sh /usr/local/bin/db-setup.sh
 
 # Install dependencies with peer dependency handling
-ENV NODE_OPTIONS="--max-old-space-size=10000"
+ENV NODE_OPTIONS="--max-old-space-size=2048"
 ENV YARN_ENABLE_IMMUTABLE_INSTALLS=false
-RUN yarn install --mode=skip-build
+RUN yarn install --mode=skip-build && chmod +x /usr/local/bin/db-setup.sh
 
-
-# Production image
+# Final image
 FROM base AS runner
 WORKDIR /app
-
-
 ENV NODE_ENV=production
 
+# 🔑 bash + psql needed in the final image
+RUN apk add --no-cache bash curl postgresql-client
 
-# Copy node_modules and source
+# Copy node_modules and source (no need to rebuild)
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/.yarn ./.yarn
 COPY packages ./packages
+COPY apps ./apps
+COPY package.json yarn.lock .yarnrc.yml ./
+COPY --from=deps /usr/local/bin/db-setup.sh /usr/local/bin/db-setup.sh
 
-
-# Run database setup
+# Optional: if Prisma client generation is needed prior to deploy, leave it to the script.
 CMD ["yarn", "workspace", "@calcom/prisma", "db-deploy"]
-
-
-
-
-
-
-

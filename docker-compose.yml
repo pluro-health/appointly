@@ -1,0 +1,231 @@
+services:
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: appointly
+      POSTGRES_USER: appointly
+      POSTGRES_PASSWORD: changethis
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres_data_prod:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U appointly -d appointly -h localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - calcom_network
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    ports:
+      - "8888:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@pluro.in
+      PGADMIN_DEFAULT_PASSWORD: changethis
+    volumes:
+      - ./pgadmin_data_prod:/var/lib/pgadmin
+    networks:
+      - calcom_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data_prod:/data
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - calcom_network
+
+  db-setup:
+    build:
+      context: .
+      dockerfile: Dockerfile.db-setup
+    image: appointly/db-setup:latest
+    container_name: db_setup
+    restart: "no"
+    environment:
+      # Required for prisma
+      - DATABASE_URL=postgresql://appointly:changethis@postgres/appointly
+      - DATABASE_DIRECT_URL=postgresql://appointly:changethis@postgres/appointly
+      # Optional/tunable
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=appointly
+      - DB_NAME=appointly
+      - WAIT_TIMEOUT=90
+      - SEED=true
+      - WORKSPACE=@calcom/prisma
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - calcom_network
+
+  # API v2 (NestJS) - container listens on :80; host exposed on 5555
+  api-v2:
+    build:
+      context: .
+      dockerfile: apps/api/v2/Dockerfile
+      args:
+        DATABASE_URL: postgresql://calcom:${POSTGRES_PASSWORD:-calcom_password}@postgres:5432/calcom
+        DATABASE_DIRECT_URL: postgresql://calcom:${POSTGRES_PASSWORD:-calcom_password}@postgres:5432/calcom
+    image: appointly/api-v2:latest
+    container_name: calcom_api_v2_prod
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - PORT=80
+      - DATABASE_URL=postgresql://calcom:${POSTGRES_PASSWORD:-calcom_password}@postgres:5432/calcom
+      - DATABASE_DIRECT_URL=postgresql://calcom:${POSTGRES_PASSWORD:-calcom_password}@postgres:5432/calcom
+    ports:
+      - "5555:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - calcom_network
+
+  # API v1 (Next.js)
+  api-v1:
+    build:
+      context: .
+      dockerfile: Dockerfile.api-v1
+      args:
+        NODE_ENV: production
+        # 👇 internal URL so Next can proxy server-side to api-v2
+        API_V2_ROOT_URL: http://api-v2:80
+        NEXT_PUBLIC_API_V2_ROOT_URL: http://api-v2:80
+    environment:
+      - API_V2_ROOT_URL=http://api-v2:80
+      - NEXT_PUBLIC_API_V2_ROOT_URL=http://api-v2:80
+    image: appointly/api-v1:latest
+    container_name: calcom_api_v1_prod
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "3003:3003"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api-v2:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3003/api/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - calcom_network
+
+  # API Proxy (talks to api-v1 and api-v2 over service DNS)
+  api-proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile.api-proxy
+    image: appointly/api-proxy:latest
+    container_name: calcom_api_proxy_prod
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - HOST=0.0.0.0
+      - PORT=3002
+      - API_V1_URL=http://api-v1:3003
+      - API_V2_URL=http://api-v2:80
+    ports:
+      - "3002:3002"
+    depends_on:
+      api-v1:
+        condition: service_healthy
+      api-v2:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3002/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - calcom_network
+
+  # Web App (Next.js) – browser talks only to proxy
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      args:
+        NODE_ENV: production
+        NEXT_PUBLIC_API_URL: http://localhost:3002
+        NEXT_PUBLIC_API_V2_ROOT_URL: http://localhost:3002
+        NEXT_PUBLIC_WEBAPP_URL: ${NEXT_PUBLIC_WEBAPP_URL:-http://localhost:3000}
+        BUILD_DATE: ${BUILD_DATE:-$(date +%Y-%m-%d_%H:%M:%S)}
+    image: appointly/web:latest
+    container_name: calcom_web_prod
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api-proxy:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - calcom_network
+
+volumes:
+  postgres_data_prod:
+    driver: local
+  redis_data_prod:
+    driver: local
+  pgadmin_data_prod:
+    driver: local
+
+networks:
+  calcom_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
