@@ -1,0 +1,65 @@
+volumes:
+ database-data:
+
+
+networks:
+ pluro:
+   name: pluro
+   external: false
+
+
+services:
+ database:
+   container_name: appointly-database
+   image: postgres:15
+   restart: always
+   volumes:
+     - database-data:/var/lib/postgresql/data/
+   env_file: .env
+   networks:
+     - pluro
+   environment:
+     - POSTGRES_DB=${POSTGRES_DB:-appointly}
+     - POSTGRES_USER=${POSTGRES_USER:-appointly_user}
+     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-appointly_password}
+
+ redis:
+    container_name: appointly-redis
+    image: redis:7-alpine
+    restart: always
+    networks:
+      - pluro
+    ports:
+      - 6379:6379
+
+ appointly:
+   container_name: appointly
+   build:
+     context: .
+     dockerfile: Dockerfile
+     args:
+       NEXT_PUBLIC_WEBAPP_URL: ${NEXT_PUBLIC_WEBAPP_URL:-http://localhost:3000}
+       NEXT_PUBLIC_API_V2_URL: ${NEXT_PUBLIC_API_V2_URL:-http://localhost:3004}
+       NEXT_PUBLIC_LICENSE_CONSENT: ${NEXT_PUBLIC_LICENSE_CONSENT}
+       NEXT_PUBLIC_WEBSITE_TERMS_URL: ${NEXT_PUBLIC_WEBSITE_TERMS_URL}
+       NEXT_PUBLIC_WEBSITE_PRIVACY_POLICY_URL: ${NEXT_PUBLIC_WEBSITE_PRIVACY_POLICY_URL}
+       CALCOM_TELEMETRY_DISABLED: ${CALCOM_TELEMETRY_DISABLED:-1}
+       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-your-secret-key}
+       CALENDSO_ENCRYPTION_KEY: ${CALENDSO_ENCRYPTION_KEY:-your-encryption-key}
+       DATABASE_URL: postgresql://${POSTGRES_USER:-appointly_user}:${POSTGRES_PASSWORD:-appointly_password}@database:5432/${POSTGRES_DB:-appointly}
+   restart: always
+   networks:
+     - pluro
+   ports:
+     - 3000:3000
+   env_file: .env
+   environment:
+     - DATABASE_URL=postgresql://${POSTGRES_USER:-appointly_user}:${POSTGRES_PASSWORD:-appointly_password}@database:5432/${POSTGRES_DB:-appointly}
+     - DATABASE_DIRECT_URL=postgresql://${POSTGRES_USER:-appointly_user}:${POSTGRES_PASSWORD:-appointly_password}@database:5432/${POSTGRES_DB:-appointly}
+     - NEXTAUTH_URL=${NEXT_PUBLIC_WEBAPP_URL:-http://localhost:3000}/api/auth
+     - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-your-secret-key}
+     - CALENDSO_ENCRYPTION_KEY=${CALENDSO_ENCRYPTION_KEY:-your-encryption-key}
+     - REDIS_URL=redis://redis:6379
+   depends_on:
+     - database
+     - redis
