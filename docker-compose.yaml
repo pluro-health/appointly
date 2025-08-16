@@ -1,42 +1,42 @@
 services:
-  database:
-    container_name: database
-    image: postgres:15
-    restart: always
-    volumes:
-      - ./pg-data:/var/lib/postgresql/data/
-    env_file: .env
-    networks: [appointly]
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+  # database:
+  #   container_name: database
+  #   image: postgres:15
+  #   restart: always
+  #   volumes:
+  #     - ./pg-data:/var/lib/postgresql/data/
+  #   env_file: .env
+  #   networks: [appointly]
+  #   environment:
+  #     POSTGRES_DB: ${POSTGRES_DB}
+  #     POSTGRES_USER: ${POSTGRES_USER}
+  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
 
-  pgadmin:
-    image: dpage/pgadmin4
-    container_name: pgadmin4
-    depends_on:
-      - database
-    restart: always
-    ports:
-      - "8888:80"
-    env_file: .env
-    environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
-    volumes:
-      - ./pgadmin-data:/var/lib/pgadmin
-    networks: [appointly]
+  # pgadmin:
+  #   image: dpage/pgadmin4
+  #   container_name: pgadmin4
+  #   depends_on:
+  #     - database
+  #   restart: always
+  #   ports:
+  #     - "8888:80"
+  #   env_file: .env
+  #   environment:
+  #     PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+  #     PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+  #   volumes:
+  #     - ./pgadmin-data:/var/lib/pgadmin
+  #   networks: [appointly]
 
-  redis:
-    image: redis:7-alpine
-    container_name: redis
-    restart: always
-    ports:
-      - "6379:6379"
-    volumes:
-      - ./redis-data:/data
-    networks: [appointly]
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: redis
+  #   restart: always
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - ./redis-data:/data
+  #   networks: [appointly]
 
   web:
     container_name: web
@@ -52,7 +52,7 @@ services:
         CALCOM_TELEMETRY_DISABLED: ${CALCOM_TELEMETRY_DISABLED}
         NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
         CALENDSO_ENCRYPTION_KEY: ${CALENDSO_ENCRYPTION_KEY}
-        DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}
+        DATABASE_URL: ${DATABASE_URL}
         EMAIL_SERVER_HOST: ${EMAIL_SERVER_HOST}
         EMAIL_SERVER_PORT: ${EMAIL_SERVER_PORT}
         EMAIL_SERVER_USER: ${EMAIL_SERVER_USER}
@@ -67,36 +67,37 @@ services:
         NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY}
         VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
         JWT_SECRET: ${JWT_SECRET}
-        REDIS_URL: redis://redis:6379
+        REDIS_URL: ${REDIS_URL}
     restart: always
     ports:
       - "3000:3000"
     env_file: .env
     environment:
-      DATABASE_HOST: database
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}
-      DATABASE_DIRECT_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}
-      DATABASE_READ_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}
-      DATABASE_WRITE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}
+      DATABASE_HOST: ${DATABASE_HOST}
+      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_DIRECT_URL: ${DATABASE_DIRECT_URL}
+      DATABASE_READ_URL: ${DATABASE_READ_URL}
+      DATABASE_WRITE_URL: ${DATABASE_WRITE_URL}
       NEXTAUTH_URL: ${NEXT_PUBLIC_WEBAPP_URL}/api/auth
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
       CALENDSO_ENCRYPTION_KEY: ${CALENDSO_ENCRYPTION_KEY}
       NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
       JWT_SECRET: ${JWT_SECRET}
-      REDIS_URL: redis://redis:6379
-    depends_on:
-      - database
-      - redis
-    networks: [appointly]
+      REDIS_URL: ${REDIS_URL}
+#     depends_on:
+#       - database
+#       - redis
+#     networks: [appointly]
 
-volumes:
-  pg-data:
-  pgadmin-data:
-  redis-data:
+# volumes:
+#   pg-data:
+#   pgadmin-data:
+#   redis-data:
 
-networks:
-  appointly:
+# networks:
+#   appointly:
     name: appointly
     driver: bridge
     external: false
+
