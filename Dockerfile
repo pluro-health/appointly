@@ -9,7 +9,7 @@ ARG NEXT_PUBLIC_LICENSE_CONSENT
 ARG NEXT_PUBLIC_WEBSITE_TERMS_URL
 ARG NEXT_PUBLIC_WEBSITE_PRIVACY_POLICY_URL
 ARG CALCOM_TELEMETRY_DISABLED
-ARG MAX_OLD_SPACE_SIZE=16000
+ARG MAX_OLD_SPACE_SIZE=16384
 
 # Secrets / server env also needed at build
 ARG NEXTAUTH_SECRET
@@ -48,8 +48,11 @@ ENV NEXT_PUBLIC_WEBAPP_URL=${NEXT_PUBLIC_WEBAPP_URL} \
     BUILD_STANDALONE=true \
     NEXTAUTH_SECRET=${NEXTAUTH_SECRET} \
     CALENDSO_ENCRYPTION_KEY=${CALENDSO_ENCRYPTION_KEY} \
+    DATABASE_HOST=${DATABASE_HOST} \
     DATABASE_URL=${DATABASE_URL} \
     DATABASE_DIRECT_URL=${DATABASE_URL} \
+    DATABASE_READ_URL=${DATABASE_URL} \
+    DATABASE_WRITE_URL=${DATABASE_URL} \
     EMAIL_SERVER_HOST=${EMAIL_SERVER_HOST} \
     EMAIL_SERVER_PORT=${EMAIL_SERVER_PORT} \
     EMAIL_SERVER_USER=${EMAIL_SERVER_USER} \
@@ -91,7 +94,7 @@ RUN rm -rf node_modules/.cache .yarn/cache apps/web/.next/cache
 # -------- Slim copy stage --------
 FROM node:22 AS builder-two
 WORKDIR /appointly
-ARG NEXT_PUBLIC_WEBAPP_URL=http://localhost:3000
+ARG NEXT_PUBLIC_WEBAPP_URL
 ENV NODE_ENV=production
 COPY ../package.json ../.yarnrc.yml ../turbo.json ../i18n.json ./
 COPY ../.yarn ./.yarn
@@ -117,12 +120,14 @@ WORKDIR /appointly
 RUN apt-get update && apt-get install -y postgresql-client && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder-two /appointly ./
-ARG NEXT_PUBLIC_WEBAPP_URL=http://localhost:3000
+ARG NEXT_PUBLIC_WEBAPP_URL
 ENV NODE_ENV=production \
     NEXT_PUBLIC_WEBAPP_URL=${NEXT_PUBLIC_WEBAPP_URL} \
     BUILT_NEXT_PUBLIC_WEBAPP_URL=${NEXT_PUBLIC_WEBAPP_URL}
 
 EXPOSE 3000
+
+RUN chmod +x /appointly/scripts/start.sh /appointly/scripts/replace-placeholder.sh /appointly/scripts/init-db.sh
 
 HEALTHCHECK --interval=30s --timeout=30s --retries=5 \
   CMD wget --spider http://localhost:3000 || exit 1
