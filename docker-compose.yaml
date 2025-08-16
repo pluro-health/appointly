@@ -97,7 +97,7 @@ services:
 
 # networks:
 #   appointly:
-    name: appointly
-    driver: bridge
-    external: false
+#    name: appointly
+#    driver: bridge
+#    external: false
 
