@@ -28,7 +28,7 @@ const userBodySchema = User.pick({
   timeFormat: true,
   // brandColor: true,
   // darkBrandColor: true,
-  allowDynamicBooking: true,
+  // allowDynamicBooking: true,
   identityProvider: true,
   role: true,
   avatarUrl: true,

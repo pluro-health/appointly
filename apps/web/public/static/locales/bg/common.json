@@ -1842,7 +1842,7 @@
   "fixed_round_robin": "Фиксиран round robin",
   "add_one_fixed_attendee": "Добавете един фиксиран участник и round robin през определен брой участници.",
   "calcom_is_better_with_team": "{{appName}} е по-добър с екипи",
-  "the_calcom_team": "Екипът на {{companyName}}",
+  "the_appointly_team": "Екипът на {{companyName}}",
   "add_your_team_members": "Добавете членовете на вашия екип към типовете събития. Използвайте колективно планиране, за да включите всички или намерете най-подходящия човек чрез round robin планиране.",
   "booking_limit_reached": "Достигнат е лимитът за резервации за този тип събитие",
   "duration_limit_reached": "Достигнат е лимитът за продължителност за този тип събитие",

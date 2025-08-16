@@ -83,7 +83,6 @@ export const schemaUserBaseBodyParams = User.pick({
   timeFormat: true,
   brandColor: true,
   darkBrandColor: true,
-  allowDynamicBooking: true,
   role: true,
   // @note: disallowing avatar changes via API for now. We can add it later if needed. User should upload image via UI.
   // avatar: true,
@@ -171,7 +170,6 @@ export const schemaUserReadPublic = User.pick({
   hideBranding: true,
   brandColor: true,
   darkBrandColor: true,
-  allowDynamicBooking: true,
   createdDate: true,
   verified: true,
   invitedTo: true,

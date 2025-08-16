@@ -173,6 +173,11 @@ export type FormValues = {
     redirectUrlOnExit?: string;
   };
   maxActiveBookingPerBookerOfferReschedule: boolean;
+  // Payment fields for consultation fees
+  consultationPrice: number | null;
+  paymentCurrency: string;
+  requiresPayment: boolean;
+  paymentDescription?: string;
 };
 
 export type LocationFormValues = Pick<FormValues, "id" | "locations" | "bookingFields" | "seatsPerTimeSlot">;
@@ -187,7 +192,7 @@ export type TabMap = {
   availability: React.ReactNode;
   instant?: React.ReactNode;
   limits: React.ReactNode;
-  recurring: React.ReactNode;
+  recurring?: React.ReactNode;
   setup: React.ReactNode;
   team?: React.ReactNode;
   webhooks?: React.ReactNode;

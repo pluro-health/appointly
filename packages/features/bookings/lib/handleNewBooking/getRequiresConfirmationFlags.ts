@@ -1,3 +1,5 @@
+import type { Decimal } from "@prisma/client/runtime/library";
+
 import dayjs from "@calcom/dayjs";
 import { checkIfFreeEmailDomain } from "@calcom/lib/freeEmailDomainCheck/checkIfFreeEmailDomain";
 import { withReporting } from "@calcom/lib/sentryWrapper";
@@ -6,7 +8,11 @@ import type { getEventTypeResponse } from "./getEventTypesFromDB";
 
 type EventType = Pick<
   getEventTypeResponse,
-  "metadata" | "requiresConfirmation" | "requiresConfirmationForFreeEmail"
+  | "metadata"
+  | "requiresConfirmation"
+  | "requiresConfirmationForFreeEmail"
+  | "requiresPayment"
+  | "consultationPrice"
 >;
 type PaymentAppData = { price: number };
 
@@ -30,7 +36,9 @@ export async function getRequiresConfirmationFlags({
   const isConfirmedByDefault = determineIsConfirmedByDefault(
     requiresConfirmation,
     paymentAppData.price,
-    userReschedulingIsOwner
+    userReschedulingIsOwner,
+    eventType.requiresPayment,
+    eventType.consultationPrice
   );
 
   return {
@@ -87,7 +95,18 @@ function isUserReschedulingOwner(
 function determineIsConfirmedByDefault(
   requiresConfirmation: boolean,
   price: number,
-  userReschedulingIsOwner: boolean
+  userReschedulingIsOwner: boolean,
+  requiresPayment?: boolean,
+  consultationPrice?: Decimal | null
 ): boolean {
+  // For paid events with consultation fees, never confirm by default
+  if (requiresPayment && consultationPrice && Number(consultationPrice) > 0) {
+    return false;
+  }
+  // For legacy payment apps, check if payment is required
+  if (price > 0) {
+    return false;
+  }
+  // Default behavior: confirm if no confirmation required and no payment needed
   return (!requiresConfirmation && price === 0) || userReschedulingIsOwner;
 }

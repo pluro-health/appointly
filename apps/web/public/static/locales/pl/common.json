@@ -1842,7 +1842,7 @@
   "fixed_round_robin": "Stały algorytm karuzelowy",
   "add_one_fixed_attendee": "Dodaj jednego stałego uczestnika i przeglądaj uczestników zgodnie z algorytmem karuzelowym",
   "calcom_is_better_with_team": "Aplikacja {{appName}} jest lepsza z zespołami",
-  "the_calcom_team": "Zespół {{companyName}}",
+  "the_appointly_team": "Zespół {{companyName}}",
   "add_your_team_members": "Dodaj członków zespołu do typów wydarzeń. Użyj zbiorowego ustalania harmonogramu, aby uwzględnić wszystkich lub znajdź najodpowiedniejszą osobę za pomocą algorytmu karuzelowego.",
   "booking_limit_reached": "Osiągnięto limit rezerwacji tego typu wydarzenia",
   "duration_limit_reached": "Osiągnięto limit czasu trwania tego typu wydarzenia",

@@ -13,7 +13,7 @@ export default async function ensureOnlyMembersAsHosts(
     const teamMemberCount = await prisma.membership.count({
       where: {
         teamId: body.teamId,
-        userId: { in: body.hosts.map((host) => host.userId) },
+        userId: { in: body.hosts.map((host: { userId: number }) => host.userId) },
       },
     });
     if (teamMemberCount !== body.hosts.length) {

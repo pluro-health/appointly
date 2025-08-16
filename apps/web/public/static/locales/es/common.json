@@ -1842,7 +1842,7 @@
   "fixed_round_robin": "Rotación fija por turnos",
   "add_one_fixed_attendee": "Agregue un asistente fijo y realice rotación por turnos a través de un número de asistentes.",
   "calcom_is_better_with_team": "{{appName}} funciona mejor con equipos",
-  "the_calcom_team": "El equipo de {{companyName}}",
+  "the_appointly_team": "El equipo de {{companyName}}",
   "add_your_team_members": "Añada los miembros de su equipo a sus tipos de eventos. Utilice la programación colectiva para incluir a todos o encuentre a la persona más adecuada con programación de rotación por turnos.",
   "booking_limit_reached": "Se ha alcanzado el límite de reserva para este tipo de evento",
   "duration_limit_reached": "Se ha alcanzado el límite de duración para este tipo de evento",

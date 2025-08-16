@@ -137,7 +137,6 @@ export const getHandler = async ({ ctx, input }: MeOptions) => {
     hideBranding: user.hideBranding,
     metadata: user.metadata,
     defaultBookerLayouts: user.defaultBookerLayouts,
-    allowDynamicBooking: user.allowDynamicBooking,
     allowSEOIndexing: user.allowSEOIndexing,
     receiveMonthlyDigestEmail: user.receiveMonthlyDigestEmail,
     ...profileData,

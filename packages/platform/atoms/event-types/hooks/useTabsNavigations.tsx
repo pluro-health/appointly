@@ -13,9 +13,7 @@ import type {
   FormValues,
   EventTypeApps,
 } from "@calcom/features/eventtypes/lib/types";
-import { getPaymentAppData } from "@calcom/lib/getPaymentAppData";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
-import { eventTypeMetaDataSchemaWithTypedApps } from "@calcom/prisma/zod-utils";
 import type { VerticalTabItemProps } from "@calcom/ui/components/navigation";
 
 type Props = {
@@ -25,13 +23,7 @@ type Props = {
   eventTypeApps?: EventTypeApps;
   allActiveWorkflows?: Workflow[];
 };
-export const useTabsNavigations = ({
-  formMethods,
-  eventType,
-  team,
-  eventTypeApps,
-  allActiveWorkflows,
-}: Props) => {
+export const useTabsNavigations = ({ formMethods, eventType, team }: Props) => {
   const { t } = useLocale();
 
   const length = formMethods.watch("length");
@@ -40,7 +32,6 @@ export const useTabsNavigations = ({
   const watchSchedulingType = formMethods.watch("schedulingType");
   const watchChildrenCount = formMethods.watch("children").length;
   const availability = formMethods.watch("availability");
-  const appsMetadata = formMethods.getValues("metadata")?.apps;
 
   const { isManagedEventType, isChildrenManagedEventType } = useLockedFieldsManager({
     eventType,
@@ -48,48 +39,29 @@ export const useTabsNavigations = ({
     formMethods,
   });
 
-  let enabledAppsNumber = 0;
-
-  if (appsMetadata) {
-    enabledAppsNumber = Object.entries(appsMetadata).filter(
-      ([appId, appData]) =>
-        eventTypeApps?.items.find((app) => app.slug === appId)?.isInstalled && appData.enabled
-    ).length;
-  }
-  const paymentAppData = getPaymentAppData({
-    ...eventType,
-    metadata: eventTypeMetaDataSchemaWithTypedApps.parse(eventType.metadata),
-  });
-
-  const requirePayment = paymentAppData.price > 0;
-
-  const activeWebhooksNumber = eventType.webhooks.filter((webhook) => webhook.active).length;
-
-  const installedAppsNumber = eventTypeApps?.items.length || 0;
-
-  const enabledWorkflowsNumber = allActiveWorkflows ? allActiveWorkflows.length : 0;
-
   const EventTypeTabs = useMemo(() => {
     const navigation: VerticalTabItemProps[] = getNavigation({
       t,
       length,
       multipleDuration,
       id: formMethods.getValues("id"),
-      enabledAppsNumber,
-      installedAppsNumber,
-      enabledWorkflowsNumber,
+      // enabledAppsNumber, // No longer passed as Apps tab is hidden
+      // installedAppsNumber, // No longer passed as Apps tab is hidden
+      // enabledWorkflowsNumber, // No longer passed as Workflows tab is hidden
       availability,
     });
 
-    if (!requirePayment) {
-      navigation.splice(3, 0, {
-        name: t("recurring"),
-        href: `/event-types/${formMethods.getValues("id")}?tabName=recurring`,
-        icon: "repeat",
-        info: t(`recurring_event_tab_description`),
-        "data-testid": "recurring",
-      });
-    }
+    // Removed the "Recurring" tab
+    // if (!requirePayment) {
+    //   navigation.splice(3, 0, {
+    //     name: t("recurring"),
+    //     href: `/event-types/${formMethods.getValues("id")}?tabName=recurring`,
+    //     icon: "repeat",
+    //     info: t(`recurring_event_tab_description`),
+    //     "data-testid": "recurring",
+    //   });
+    // }
+
     navigation.splice(1, 0, {
       name: t("availability"),
       href: `/event-types/${formMethods.getValues("id")}?tabName=availability`,
@@ -132,14 +104,8 @@ export const useTabsNavigations = ({
         });
       }
     }
-    navigation.push({
-      name: t("webhooks"),
-      href: `/event-types/${formMethods.getValues("id")}?tabName=webhooks`,
-      icon: "webhook",
-      info: `${activeWebhooksNumber} ${t("active")}`,
-      "data-testid": "webhooks",
-    });
-    const hidden = true; // hidden while in alpha trial. you can access it with tabName=ai
+
+    const hidden = true;
     if (team && hidden) {
       navigation.push({
         name: "Cal.ai",
@@ -152,20 +118,15 @@ export const useTabsNavigations = ({
     return navigation;
   }, [
     t,
-    enabledAppsNumber,
-    installedAppsNumber,
-    enabledWorkflowsNumber,
     availability,
     isManagedEventType,
     isChildrenManagedEventType,
     team,
     length,
-    requirePayment,
     multipleDuration,
     formMethods.getValues("id"),
     watchSchedulingType,
     watchChildrenCount,
-    activeWebhooksNumber,
   ]);
 
   return { tabsNavigation: EventTypeTabs };
@@ -176,21 +137,10 @@ type getNavigationProps = {
   length: number;
   id: number;
   multipleDuration?: EventTypeSetupProps["eventType"]["metadata"]["multipleDuration"];
-  enabledAppsNumber: number;
-  enabledWorkflowsNumber: number;
-  installedAppsNumber: number;
   availability: AvailabilityOption | undefined;
 };
 
-function getNavigation({
-  length,
-  id,
-  multipleDuration,
-  t,
-  enabledAppsNumber,
-  installedAppsNumber,
-  enabledWorkflowsNumber,
-}: getNavigationProps) {
+function getNavigation({ length, id, multipleDuration, t }: getNavigationProps) {
   const duration = multipleDuration?.map((duration) => ` ${duration}`) || length;
 
   return [
@@ -214,21 +164,6 @@ function getNavigation({
       icon: "sliders-vertical",
       info: t(`event_advanced_tab_description`),
       "data-testid": "event_advanced_tab_title",
-    },
-    {
-      name: t("apps"),
-      href: `/event-types/${id}?tabName=apps`,
-      icon: "grid-3x3",
-      //TODO: Handle proper translation with count handling
-      info: `${installedAppsNumber} apps, ${enabledAppsNumber} ${t("active")}`,
-      "data-testid": "apps",
-    },
-    {
-      name: t("workflows"),
-      href: `/event-types/${id}?tabName=workflows`,
-      icon: "zap",
-      info: `${enabledWorkflowsNumber} ${t("active")}`,
-      "data-testid": "workflows",
     },
   ] satisfies VerticalTabItemProps[];
 }

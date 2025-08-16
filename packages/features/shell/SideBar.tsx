@@ -1,16 +1,13 @@
 import type { User as UserAuth } from "next-auth";
 import { useSession } from "next-auth/react";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { IS_VISUAL_REGRESSION_TESTING, ENABLE_PROFILE_SWITCHER } from "@calcom/lib/constants";
-import { getPlaceholderAvatar } from "@calcom/lib/defaultAvatarImage";
+import { IS_VISUAL_REGRESSION_TESTING } from "@calcom/lib/constants";
 import { getBookerBaseUrlSync } from "@calcom/lib/getBookerUrl/client";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { UserPermissionRole } from "@calcom/prisma/enums";
 import classNames from "@calcom/ui/classNames";
-import { Avatar } from "@calcom/ui/components/avatar";
 import { Credits } from "@calcom/ui/components/credits";
 import { ButtonOrLink } from "@calcom/ui/components/dropdown";
 import { Icon } from "@calcom/ui/components/icon";
@@ -18,16 +15,9 @@ import { Logo } from "@calcom/ui/components/logo";
 import { SkeletonText } from "@calcom/ui/components/skeleton";
 import { Tooltip } from "@calcom/ui/components/tooltip";
 
-import { KBarTrigger } from "../kbar/Kbar";
 import { Navigation } from "./navigation/Navigation";
 import { useBottomNavItems } from "./useBottomNavItems";
-import { ProfileDropdown } from "./user-dropdown/ProfileDropdown";
 import { UserDropdown } from "./user-dropdown/UserDropdown";
-
-// need to import without ssr to prevent hydration errors
-const Tips = dynamic(() => import("@calcom/features/tips").then((mod) => mod.Tips), {
-  ssr: false,
-});
 
 export type SideBarContainerProps = {
   bannersHeight: number;
@@ -80,33 +70,14 @@ export function SideBar({ bannersHeight, user }: SideBarProps) {
         )}>
         <div className="flex h-full flex-col justify-between py-3 lg:pt-4">
           <header className="todesktop:-mt-3 todesktop:flex-col-reverse todesktop:[-webkit-app-region:drag] items-center justify-between md:hidden lg:flex">
-            {user?.org ? (
-              !ENABLE_PROFILE_SWITCHER ? (
-                <Link href="/settings/organizations/profile" className="w-full px-1.5">
-                  <div className="flex items-center gap-2 font-medium">
-                    <Avatar
-                      alt={`${user.org.name} logo`}
-                      imageSrc={getPlaceholderAvatar(user.org.logoUrl, user.org.name)}
-                      size="xsm"
-                    />
-                    <p className="text line-clamp-1 text-sm">
-                      <span>{user.org.name}</span>
-                    </p>
-                  </div>
-                </Link>
-              ) : (
-                <ProfileDropdown />
-              )
-            ) : (
-              <div data-testid="user-dropdown-trigger" className="todesktop:mt-4 w-full">
-                <span className="hidden lg:inline">
-                  <UserDropdown />
-                </span>
-                <span className="hidden md:inline lg:hidden">
-                  <UserDropdown small />
-                </span>
-              </div>
-            )}
+            <div data-testid="user-dropdown-trigger" className="todesktop:mt-4 w-full">
+              <span className="hidden lg:inline">
+                <UserDropdown />
+              </span>
+              <span className="hidden md:inline lg:hidden">
+                <UserDropdown small />
+              </span>
+            </div>
             <div className="flex w-full justify-end rtl:space-x-reverse">
               <button
                 color="minimal"
@@ -126,12 +97,6 @@ export function SideBar({ bannersHeight, user }: SideBarProps) {
                   className="group-hover:text-emphasis text-subtle h-4 w-4 flex-shrink-0"
                 />
               </button>
-              {!!user?.org && (
-                <div data-testid="user-dropdown-trigger" className="flex items-center">
-                  <UserDropdown small />
-                </div>
-              )}
-              <KBarTrigger />
             </div>
           </header>
           {/* logo icon for tablet */}
@@ -143,9 +108,6 @@ export function SideBar({ bannersHeight, user }: SideBarProps) {
 
         {!isPlatformPages && (
           <div>
-            <div className="overflow-hidden">
-              <Tips />
-            </div>
             {bottomNavItems.map((item, index) => (
               <Tooltip side="right" content={t(item.name)} className="lg:hidden" key={item.name}>
                 <ButtonOrLink

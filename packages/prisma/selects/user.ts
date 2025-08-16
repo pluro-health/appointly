@@ -44,7 +44,7 @@ export const baseUserSelect = {
 export const userSelect = {
   select: {
     name: true,
-    allowDynamicBooking: true,
+    allowDynamicBooking: false,
     destinationCalendar: true,
     locale: true,
     hideBranding: true,

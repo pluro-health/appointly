@@ -105,7 +105,7 @@ const userSelect = {
   invitedTo: true,
   brandColor: true,
   darkBrandColor: true,
-  allowDynamicBooking: true,
+  allowDynamicBooking: false,
   allowSEOIndexing: true,
   receiveMonthlyDigestEmail: true,
   verified: true,
@@ -628,10 +628,11 @@ export class UserRepository {
       organizationId: number | null;
       creationSource: CreationSource;
       locked: boolean;
+      centerId?: number | null;
     }
   ) {
     const organizationIdValue = data.organizationId;
-    const { email, username, creationSource, locked, hashedPassword, ...rest } = data;
+    const { email, username, creationSource, locked, hashedPassword, centerId, center, ...rest } = data;
 
     logger.info("create user", { email, username, organizationIdValue, locked });
     const t = await getTranslation("en", "common");
@@ -671,6 +672,7 @@ export class UserRepository {
               },
             }
           : {}),
+        ...(centerId && { centerId }),
         ...rest,
       },
     });
@@ -907,7 +909,7 @@ export class UserRepository {
         trialEndsAt: true,
         metadata: true,
         role: true,
-        allowDynamicBooking: true,
+        allowDynamicBooking: false,
         allowSEOIndexing: true,
         receiveMonthlyDigestEmail: true,
         profiles: true,
@@ -1020,7 +1022,7 @@ export class UserRepository {
     return this.prismaClient.user.findMany({
       where,
       select: {
-        allowDynamicBooking: true,
+        allowDynamicBooking: false,
         ...availabilityUserSelect,
         credentials: {
           select: credentialForCalendarServiceSelect,

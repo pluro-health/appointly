@@ -139,16 +139,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <IconSprites />
         <SpeculationRules
           // URLs In Navigation
-          prerenderPathsOnHover={[
-            "/event-types",
-            "/availability",
-            "/bookings/upcoming",
-            "/teams",
-            "/apps",
-            "/apps/routing-forms/forms",
-            "/workflows",
-            "/insights",
-          ]}
+          prerenderPathsOnHover={["/event-types", "/availability", "/bookings/upcoming"]}
         />
 
         <Providers isEmbed={isEmbed} nonce={nonce}>

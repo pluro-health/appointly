@@ -1842,7 +1842,7 @@
   "fixed_round_robin": "고정 라운드 로빈",
   "add_one_fixed_attendee": "한 명의 고정 참석자를 추가하고 여러 참석자를 라운드 로빈 방식으로 순환합니다.",
   "calcom_is_better_with_team": "{{appName}} 앱이 팀 기능으로 더욱 좋아졌습니다",
-  "the_calcom_team": "{{companyName}} 팀",
+  "the_appointly_team": "{{companyName}} 팀",
   "add_your_team_members": "이벤트 타입에 팀원을 추가하세요. 집단 일정 관리를 사용해 모든 사람을 포함하거나 라운드 로빈 일정 관리로 가장 적합한 인원을 찾으세요.",
   "booking_limit_reached": "이 이벤트 타입에 대한 예약 한도에 도달했습니다",
   "duration_limit_reached": "이 이벤트 타입에 대한 기간 한도에 도달했습니다",

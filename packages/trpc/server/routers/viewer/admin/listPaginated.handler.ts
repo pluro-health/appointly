@@ -67,12 +67,20 @@ const listPaginatedHandler = async ({ input }: GetOptions) => {
       name: true,
       timeZone: true,
       role: true,
+      emailVerified: true,
       profiles: {
         select: {
           username: true,
         },
       },
       whitelistWorkflows: true,
+      center: {
+        select: {
+          id: true,
+          name: true,
+          address: true,
+        },
+      },
     },
   });
 

@@ -1,5 +1,13 @@
+import { z } from "zod";
+
+import { sendInvitationEmail } from "@calcom/features/auth/lib/sendInvitationEmail";
+import { createInvitationToken } from "@calcom/features/auth/lib/validateInvitationToken";
+import { sendEmailVerification } from "@calcom/features/auth/lib/verifyEmail";
+import { deleteUser } from "@calcom/features/users/lib/userDeletionService";
+
 import { authedAdminProcedure } from "../../../procedures/authedProcedure";
 import { router } from "../../../trpc";
+import { centerAdminRouter } from "./centers/_router";
 import { ZCreateSelfHostedLicenseSchema } from "./createSelfHostedLicenseKey.schema";
 import { ZListMembersSchema } from "./listPaginated.schema";
 import { ZAdminLockUserAccountSchema } from "./lockUserAccount.schema";
@@ -84,4 +92,331 @@ export const adminRouter = router({
       return handler(opts);
     }),
   }),
+  // User Management and Invitations
+  sendInvitation: authedAdminProcedure
+    .input(
+      z.object({
+        email: z.string().email(),
+        role: z.enum(["USER", "ADMIN"]),
+        expiresInHours: z.number().min(1).max(168).default(24),
+        replaceExisting: z.boolean().optional().default(false),
+        centerId: z.number().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { email, role, expiresInHours, replaceExisting, centerId } = input;
+
+      // Check if user already exists
+      const existingUser = await ctx.prisma.user.findUnique({
+        where: { email: email.toLowerCase() },
+      });
+
+      if (existingUser) {
+        throw new Error("A user with this email already exists");
+      }
+
+      // If replacing existing invitations, delete them first
+      if (replaceExisting) {
+        await ctx.prisma.invitationToken.deleteMany({
+          where: {
+            email: email.toLowerCase(),
+          },
+        });
+      } else {
+        // Check if invitation already exists and is not expired
+        const existingInvitation = await ctx.prisma.invitationToken.findFirst({
+          where: {
+            email: email.toLowerCase(),
+            expiresAt: { gt: new Date() },
+            usedAt: null,
+          },
+        });
+
+        if (existingInvitation) {
+          throw new Error("An invitation for this email already exists");
+        }
+      }
+
+      // Create invitation token
+      const token = await createInvitationToken(
+        email.toLowerCase(),
+        role,
+        ctx.user.id,
+        expiresInHours,
+        centerId
+      );
+
+      // Send invitation email
+      await sendInvitationEmail({
+        email: email.toLowerCase(),
+        token: token,
+        invitedBy: {
+          id: ctx.user.id,
+          name: ctx.user.name,
+          email: ctx.user.email || "",
+        },
+        expiresInHours,
+      });
+
+      return { success: true };
+    }),
+
+  getInvitations: authedAdminProcedure.query(async ({ ctx }) => {
+    try {
+      const invitations = await ctx.prisma.invitationToken.findMany({
+        where: {
+          usedAt: null, // Only show unused invitations
+        },
+        include: {
+          invitedBy: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          center: {
+            select: {
+              id: true,
+              name: true,
+              address: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+
+      console.log("Fetched invitations:", invitations.length);
+      return invitations;
+    } catch (error) {
+      console.error("Error fetching invitations:", error);
+      throw error;
+    }
+  }),
+
+  // User deletion
+  deleteUser: authedAdminProcedure
+    .input(z.object({ userId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const { userId } = input;
+
+      // Get user to delete
+      const userToDelete = await ctx.prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          email: true,
+          metadata: true,
+        },
+      });
+
+      if (!userToDelete) {
+        throw new Error("User not found");
+      }
+
+      // Prevent admin from deleting themselves
+      if (userToDelete.id === ctx.user.id) {
+        throw new Error("Cannot delete your own account");
+      }
+
+      // Delete the user using the service
+      await deleteUser(userToDelete);
+
+      return { success: true, message: "User deleted successfully" };
+    }),
+
+  // Delete invitation
+  deleteInvitation: authedAdminProcedure
+    .input(z.object({ invitationId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const { invitationId } = input;
+
+      // Get invitation to delete
+      const invitation = await ctx.prisma.invitationToken.findUnique({
+        where: { id: invitationId },
+        select: {
+          id: true,
+          email: true,
+          usedAt: true,
+        },
+      });
+
+      if (!invitation) {
+        throw new Error("Invitation not found");
+      }
+
+      // Prevent deletion of used invitations
+      if (invitation.usedAt) {
+        throw new Error("Cannot delete used invitations");
+      }
+
+      // Delete the invitation
+      await ctx.prisma.invitationToken.delete({
+        where: { id: invitationId },
+      });
+
+      return { success: true, message: "Invitation deleted successfully" };
+    }),
+
+  // Resend email verification
+  resendEmailVerification: authedAdminProcedure
+    .input(z.object({ userId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const { userId } = input;
+
+      // Get user to resend verification for
+      const user = await ctx.prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          email: true,
+          username: true,
+          locale: true,
+          emailVerified: true,
+        },
+      });
+
+      if (!user) {
+        throw new Error("User not found");
+      }
+
+      // Check if user is already verified
+      if (user.emailVerified) {
+        throw new Error("User is already verified");
+      }
+
+      // Send email verification
+      await sendEmailVerification({
+        email: user.email,
+        username: user.username || undefined,
+        language: user.locale || "en",
+      });
+
+      return { success: true, message: "Verification email sent successfully" };
+    }),
+
+  // Resend invitation email
+  resendInvitationEmail: authedAdminProcedure
+    .input(z.object({ invitationId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const { invitationId } = input;
+
+      // Get invitation to resend
+      const invitation = await ctx.prisma.invitationToken.findUnique({
+        where: { id: invitationId },
+        include: {
+          invitedBy: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      });
+
+      if (!invitation) {
+        throw new Error("Invitation not found");
+      }
+
+      // Check if invitation has been used
+      if (invitation.usedAt) {
+        throw new Error("Cannot resend used invitations");
+      }
+
+      // Check if invitation has expired
+      if (invitation.expiresAt < new Date()) {
+        throw new Error("Cannot resend expired invitations");
+      }
+
+      // Calculate remaining hours
+      const now = new Date();
+      const expiresInHours = Math.ceil((invitation.expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60));
+
+      // Resend invitation email
+      await sendInvitationEmail({
+        email: invitation.email,
+        token: invitation.token,
+        invitedBy: invitation.invitedBy,
+        expiresInHours,
+      });
+
+      return { success: true, message: "Invitation email resent successfully" };
+    }),
+
+  // Update user
+  updateUser: authedAdminProcedure
+    .input(
+      z.object({
+        userId: z.number(),
+        centerId: z.number().nullable().optional(),
+        password: z.string().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { userId, centerId, password } = input;
+
+      // Get user to update
+      const userToUpdate = await ctx.prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          email: true,
+        },
+      });
+
+      if (!userToUpdate) {
+        throw new Error("User not found");
+      }
+
+      // Prevent admin from updating themselves
+      if (userToUpdate.id === ctx.user.id) {
+        throw new Error("Cannot update your own account");
+      }
+
+      const updateData: any = {};
+
+      // Update center if provided (including null to remove center assignment)
+      if (centerId !== undefined) {
+        updateData.centerId = centerId;
+      }
+
+      // Update password if provided
+      if (password) {
+        const { hashPassword } = await import("@calcom/features/auth/lib/hashPassword");
+        const hashedPassword = await hashPassword(password);
+        updateData.password = {
+          upsert: {
+            create: { hash: hashedPassword },
+            update: { hash: hashedPassword },
+          },
+        };
+      }
+
+      // Update the user
+      const updatedUser = await ctx.prisma.user.update({
+        where: { id: userId },
+        data: updateData,
+        include: {
+          center: {
+            select: {
+              id: true,
+              name: true,
+              address: true,
+            },
+          },
+        },
+      });
+
+      return {
+        success: true,
+        message: "User updated successfully",
+        user: updatedUser,
+      };
+    }),
+
+  // Medical Centers Management
+  centers: centerAdminRouter,
 });

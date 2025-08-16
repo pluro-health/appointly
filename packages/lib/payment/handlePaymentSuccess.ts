@@ -52,6 +52,7 @@ export async function handlePaymentSuccess(paymentId: number, bookingId: number)
     bookingData.references = { create: scheduleResult.referencesToCreate };
   }
 
+  // Check if booking requires confirmation (either through settings or payment status)
   const requiresConfirmation = doesBookingRequireConfirmation({
     booking: {
       ...booking,
@@ -59,7 +60,13 @@ export async function handlePaymentSuccess(paymentId: number, bookingId: number)
     },
   });
 
-  if (requiresConfirmation) {
+  // For paid events with consultation fees, we want to confirm the booking after successful payment
+  // unless the event type explicitly requires confirmation
+  const isPaidEventWithConsultationFee =
+    eventType?.requiresPayment && eventType?.consultationPrice && Number(eventType.consultationPrice) > 0;
+
+  if (requiresConfirmation && !isPaidEventWithConsultationFee) {
+    // Only delete status if it's not a paid event that should be confirmed after payment
     delete bookingData.status;
   }
   const paymentUpdate = prisma.payment.update({

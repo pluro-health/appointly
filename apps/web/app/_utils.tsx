@@ -4,7 +4,7 @@ import { cookies, headers } from "next/headers";
 import { getLocale } from "@calcom/features/auth/lib/getLocale";
 import type { AppImageProps, MeetingImageProps } from "@calcom/lib/OgImages";
 import { constructAppImage, constructGenericImage, constructMeetingImage } from "@calcom/lib/OgImages";
-import { IS_CALCOM, WEBAPP_URL, APP_NAME, SEO_IMG_OGIMG, CAL_URL } from "@calcom/lib/constants";
+import { IS_CALCOM, WEBAPP_URL, APP_NAME, SEO_IMG_OGIMG, WEB_URL } from "@calcom/lib/constants";
 import { buildCanonical } from "@calcom/lib/next-seo.config";
 import { getTranslation } from "@calcom/lib/server/i18n";
 import { truncateOnWord } from "@calcom/lib/text";
@@ -25,7 +25,7 @@ const _generateMetadataWithoutImage = async (
   pathname?: string
 ) => {
   const _pathname = pathname ?? "";
-  const canonical = buildCanonical({ path: _pathname, origin: origin ?? CAL_URL });
+  const canonical = buildCanonical({ path: _pathname, origin: origin ?? WEB_URL });
   const t = await getTranslate();
 
   const title = getTitle(t);

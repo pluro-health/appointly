@@ -93,12 +93,48 @@ const schemaEventTypeCreateParams = z
     bookingFields: eventTypeBookingFields.optional(),
     scheduleId: z.number().optional(),
     parentId: z.number().optional(),
+    // Payment fields for consultation fees
+    consultationPrice: z.number().min(0).max(999999.99).multipleOf(0.01).optional(),
+    paymentCurrency: z.string().min(3).max(3).default("INR").optional(),
+    requiresPayment: z.boolean().default(false).optional(),
   })
   .strict();
 
 export const schemaEventTypeCreateBodyParams = schemaEventTypeBaseBodyParams
   .merge(schemaEventTypeCreateParams)
-  .merge(schemaQueryUserId.partial());
+  .merge(schemaQueryUserId.partial())
+  .refine(
+    (data) => {
+      // Payment validation: consultationPrice required when requiresPayment is enabled
+      if (data.requiresPayment === true && (!data.consultationPrice || data.consultationPrice <= 0)) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Consultation price is required and must be greater than 0 when payment is enabled",
+      path: ["consultationPrice"],
+    }
+  )
+  .refine(
+    (data) => {
+      // Payment validation: requiresPayment must be disabled if consultationPrice is null/0
+      if (
+        data.consultationPrice === null ||
+        data.consultationPrice === undefined ||
+        data.consultationPrice <= 0
+      ) {
+        if (data.requiresPayment === true) {
+          return false;
+        }
+      }
+      return true;
+    },
+    {
+      message: "Payment cannot be required when consultation price is not set",
+      path: ["requiresPayment"],
+    }
+  );
 
 const schemaEventTypeEditParams = z
   .object({
@@ -143,6 +179,9 @@ export const schemaEventTypeReadPublic = EventType.pick({
   afterEventBuffer: true,
   schedulingType: true,
   price: true,
+  consultationPrice: true,
+  paymentCurrency: true,
+  requiresPayment: true,
   currency: true,
   slotInterval: true,
   parentId: true,

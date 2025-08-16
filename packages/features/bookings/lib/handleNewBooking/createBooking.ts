@@ -235,7 +235,22 @@ function buildNewBookingData(params: CreateBookingParams) {
     endTime: dayjs.utc(evt.endTime).toDate(),
     description: evt.seatsPerTimeSlot ? null : evt.additionalNotes,
     customInputs: isPrismaObjOrUndefined(evt.customInputs),
-    status: eventType.isConfirmedByDefault ? BookingStatus.ACCEPTED : BookingStatus.PENDING,
+    status: (() => {
+      // For paid events with consultation fees, always create as PENDING until payment is successful
+      if (
+        eventType.eventTypeData.requiresPayment &&
+        eventType.eventTypeData.consultationPrice &&
+        Number(eventType.eventTypeData.consultationPrice) > 0
+      ) {
+        return BookingStatus.PENDING;
+      }
+      // For legacy payment apps, check if payment is required
+      if (eventType.paymentAppData.enabled && eventType.paymentAppData.price > 0) {
+        return BookingStatus.PENDING;
+      }
+      // Default behavior based on confirmation settings
+      return eventType.isConfirmedByDefault ? BookingStatus.ACCEPTED : BookingStatus.PENDING;
+    })(),
     oneTimePassword: evt.oneTimePassword,
     location: evt.location,
     eventType: eventTypeRel,

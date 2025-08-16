@@ -1842,7 +1842,7 @@
   "fixed_round_robin": "固定ラウンドロビン",
   "add_one_fixed_attendee": "固定された出席者を 1 人追加し、複数の出席者についてラウンドロビン方式で出席スケジュールを決定します。",
   "calcom_is_better_with_team": "{{appName}} はチームでの使用に適しています",
-  "the_calcom_team": "{{companyName}} チーム",
+  "the_appointly_team": "{{companyName}} チーム",
   "add_your_team_members": "イベントの種類にチームメンバーを追加します。一括スケジューリングで全員を参加させたり、ラウンドロビンスケジューリングで最適な人を設定したりすることができます。",
   "booking_limit_reached": "このイベントタイプの予約上限に達しました",
   "duration_limit_reached": "このイベントの種類の期間の上限に達しました",

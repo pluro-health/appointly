@@ -78,6 +78,10 @@ export const getEventTypesFromDB = async (eventTypeId: number) => {
         price: true,
         currency: true,
         metadata: true,
+        // Add consultation fee fields
+        requiresPayment: true,
+        consultationPrice: true,
+        paymentCurrency: true,
         destinationCalendar: true,
         hideCalendarNotes: true,
         hideCalendarEventDetails: true,

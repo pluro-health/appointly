@@ -44,6 +44,9 @@ export const createHandler = async ({ ctx, input }: CreateOptions) => {
     locations: inputLocations,
     scheduleId,
     calVideoSettings,
+    consultationPrice,
+    paymentCurrency,
+    requiresPayment,
     ...rest
   } = input;
 
@@ -56,6 +59,21 @@ export const createHandler = async ({ ctx, input }: CreateOptions) => {
 
   const isCalVideoLocationActive = locations.some((location) => location.type === DailyLocationType);
 
+  // Validate payment configuration
+  if (requiresPayment && (!consultationPrice || consultationPrice <= 0)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Consultation price is required and must be greater than 0 when payment is enabled",
+    });
+  }
+
+  if (consultationPrice && consultationPrice > 0 && !requiresPayment) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Payment must be enabled when consultation price is set",
+    });
+  }
+
   const data: Prisma.EventTypeCreateInput = {
     ...rest,
     owner: teamId ? undefined : { connect: { id: userId } },
@@ -64,6 +82,10 @@ export const createHandler = async ({ ctx, input }: CreateOptions) => {
     users: isManagedEventType || schedulingType ? undefined : { connect: { id: userId } },
     locations,
     schedule: scheduleId ? { connect: { id: scheduleId } } : undefined,
+    // Payment fields
+    consultationPrice: consultationPrice ?? null,
+    paymentCurrency: paymentCurrency ?? "INR",
+    requiresPayment: requiresPayment ?? false,
   };
 
   if (isCalVideoLocationActive && calVideoSettings) {

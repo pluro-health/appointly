@@ -5,6 +5,7 @@ import type { FieldError } from "react-hook-form";
 
 import { useIsPlatformBookerEmbed } from "@calcom/atoms/hooks/useIsPlatformBookerEmbed";
 import type { BookerEvent } from "@calcom/features/bookings/types";
+import { getPaymentButtonOptionsForSelected } from "@calcom/lib/bookingUtils";
 import ServerTrans from "@calcom/lib/components/ServerTrans";
 import { WEBSITE_PRIVACY_POLICY_URL, WEBSITE_TERMS_URL } from "@calcom/lib/constants";
 import { ErrorCode } from "@calcom/lib/errorCodes";
@@ -21,6 +22,7 @@ import { formatEventFromTime } from "../../utils/dates";
 import { useBookerTime } from "../hooks/useBookerTime";
 import type { UseBookingFormReturnType } from "../hooks/useBookingForm";
 import type { IUseBookingErrors, IUseBookingLoadingStates } from "../hooks/useBookings";
+import { useEasebuzzPaymentFlow } from "../hooks/usePaymentFlow";
 import { BookingFields } from "./BookingFields";
 import { FormSkeleton } from "./Skeleton";
 
@@ -66,7 +68,18 @@ export const BookEventForm = ({
   eventQuery: {
     isError: boolean;
     isPending: boolean;
-    data?: Pick<BookerEvent, "price" | "currency" | "metadata" | "bookingFields" | "locations"> | null;
+    data?: Pick<
+      BookerEvent,
+      | "price"
+      | "currency"
+      | "metadata"
+      | "bookingFields"
+      | "locations"
+      | "consultationPrice"
+      | "paymentCurrency"
+      | "requiresPayment"
+      | "length"
+    > | null;
   };
 }) => {
   const eventType = eventQuery.data;
@@ -76,17 +89,38 @@ export const BookEventForm = ({
   const timeslot = useBookerStore((state) => state.selectedTimeslot);
   const username = useBookerStore((state) => state.username);
   const isInstantMeeting = useBookerStore((state) => state.isInstantMeeting);
+  const eventId = useBookerStore((state) => state.eventId);
   const isPlatformBookerEmbed = useIsPlatformBookerEmbed();
   const { timeFormat, timezone } = useBookerTime();
 
   const [responseVercelIdHeader] = useState<string | null>(null);
   const { t, i18n } = useLocale();
+  const { initiatePayment } = useEasebuzzPaymentFlow(eventType?.length);
 
   const isPaidEvent = useMemo(() => {
+    // Check for consultation fee first
+    if (
+      (eventType as any)?.requiresPayment &&
+      (eventType as any)?.consultationPrice &&
+      (eventType as any).consultationPrice > 0
+    ) {
+      return true;
+    }
+    // Check for legacy payment apps
     if (!eventType?.price) return false;
     const paymentAppData = getPaymentAppData(eventType);
     return eventType?.price > 0 && !Number.isNaN(paymentAppData.price) && paymentAppData.price > 0;
   }, [eventType]);
+
+  // Watch the user's location selection to determine payment buttons
+  const selectedLocation = bookingForm.watch("responses.location");
+
+  const paymentButtonOptions = useMemo(() => {
+    if (!isPaidEvent) {
+      return { showPayNow: false, showPayLater: false, isRemoteOnly: false, isPhysicalLocation: false };
+    }
+    return getPaymentButtonOptionsForSelected(selectedLocation);
+  }, [selectedLocation, isPaidEvent]);
 
   if (eventQuery.isError) return <Alert severity="warning" message={t("error_booking_event")} />;
   if (eventQuery.isPending || !eventQuery.data) return <FormSkeleton />;
@@ -219,11 +253,25 @@ export const BookEventForm = ({
         )}
         <div className="modalsticky mt-auto flex justify-end space-x-2 rtl:space-x-reverse">
           {isInstantMeeting ? (
-            <Button type="submit" color="primary" loading={loadingStates.creatingInstantBooking}>
-              {isPaidEvent ? t("pay_and_book") : t("confirm")}
+            // Instant meeting: single Confirm button
+            <Button
+              type="submit"
+              color="primary"
+              loading={loadingStates.creatingInstantBooking}
+              onClick={() => {
+                if (isPaidEvent) {
+                  // ✅ Paid instant meeting → trigger payment
+                  initiatePayment(eventId || 0, bookingForm);
+                } else {
+                  // ✅ Free instant meeting → just confirm
+                  onSubmit();
+                }
+              }}>
+              {t("confirm")}
             </Button>
           ) : (
             <>
+              {/* Back Button */}
               {!!onCancel && (
                 <Button
                   color="minimal"
@@ -235,8 +283,9 @@ export const BookEventForm = ({
                 </Button>
               )}
 
+              {/* Single Confirm Button for all cases */}
               <Button
-                type="submit"
+                type="button"
                 color="primary"
                 disabled={
                   (!!shouldRenderCaptcha && !watchedCfToken) || isTimeslotUnavailable || confirmButtonDisabled
@@ -247,16 +296,21 @@ export const BookEventForm = ({
                   isVerificationCodeSending
                 }
                 className={classNames?.confirmButton}
+                onClick={() => {
+                  if (isPaidEvent && !rescheduleUid) {
+                    if (eventId) {
+                      initiatePayment(eventId || 0, bookingForm);
+                    }
+                    // ✅ Paid event → trigger payment gateway
+                  } else {
+                    // ✅ Free or reschedule → directly confirm
+                    onSubmit();
+                  }
+                }}
                 data-testid={
                   rescheduleUid && bookingData ? "confirm-reschedule-button" : "confirm-book-button"
                 }>
-                {rescheduleUid && bookingData
-                  ? t("reschedule")
-                  : renderConfirmNotVerifyEmailButtonCond
-                  ? isPaidEvent
-                    ? t("pay_and_book")
-                    : t("confirm")
-                  : t("verify_email_button")}
+                {rescheduleUid && bookingData ? t("reschedule") : t("confirm")}
               </Button>
             </>
           )}

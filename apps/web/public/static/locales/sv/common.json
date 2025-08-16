@@ -1842,7 +1842,7 @@
   "fixed_round_robin": "Fast Round Robin",
   "add_one_fixed_attendee": "Lägg till en fast deltagare och Round Robin för ett antal deltagare.",
   "calcom_is_better_with_team": "{{appName}} är bättre med teams",
-  "the_calcom_team": "{{companyName}}-teamet",
+  "the_appointly_team": "{{companyName}}-teamet",
   "add_your_team_members": "Lägg till teammedlemmar i dina händelsetyper. Använd kollektiv schemaläggning för att inkludera alla eller hitta den lämpligaste personen med Round Robin-schemaläggning.",
   "booking_limit_reached": "Bokningsgränsen för denna händelsetyp har uppnåtts",
   "duration_limit_reached": "Varaktighetsgränsen för denna händelsetyp har uppnåtts",

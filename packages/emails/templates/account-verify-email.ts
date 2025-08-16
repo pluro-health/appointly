@@ -48,7 +48,7 @@ ${this.verifyAccountInput.language("verify_email_email_body", { appName: APP_NAM
 ${this.verifyAccountInput.language("verify_email_email_link_text")}
 ${this.verifyAccountInput.verificationEmailLink}
 ${this.verifyAccountInput.language("happy_scheduling")} ${this.verifyAccountInput.language(
-      "the_calcom_team",
+      "the_appointly_team",
       { companyName: COMPANY_NAME }
     )}
 `.replace(/(<([^>]+)>)/gi, "");

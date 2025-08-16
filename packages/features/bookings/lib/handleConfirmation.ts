@@ -72,6 +72,7 @@ export async function handleConfirmation(args: {
   paid?: boolean;
   emailsEnabled?: boolean;
   platformClientParams?: PlatformClientParams;
+  easebuzzPayment?: any; // Add optional Easebuzz payment parameter
 }) {
   const {
     user,
@@ -83,6 +84,7 @@ export async function handleConfirmation(args: {
     paid,
     emailsEnabled = true,
     platformClientParams,
+    easebuzzPayment,
   } = args;
   const eventType = booking.eventType;
   const eventTypeMetadata = EventTypeMetaDataSchema.parse(eventType?.metadata || {});
@@ -492,6 +494,8 @@ export async function handleConfirmation(args: {
 
     if (paid) {
       let paymentExternalId: string | undefined;
+      let paymentId: number | undefined;
+
       const subscriberMeetingPaid = await getWebhooks({
         userId,
         eventTypeId: booking.eventTypeId,
@@ -500,23 +504,31 @@ export async function handleConfirmation(args: {
         orgId,
         oAuthClientId: platformClientParams?.platformClientId,
       });
-      const bookingWithPayment = await prisma.booking.findUnique({
-        where: {
-          id: bookingId,
-        },
-        select: {
-          payment: {
-            select: {
-              id: true,
-              success: true,
-              externalId: true,
+
+      // Use Easebuzz payment data if available, otherwise fall back to standard payment table
+      if (easebuzzPayment) {
+        paymentExternalId = easebuzzPayment.easebuzzTxnId;
+        paymentId = easebuzzPayment.id;
+      } else {
+        const bookingWithPayment = await prisma.booking.findUnique({
+          where: {
+            id: bookingId,
+          },
+          select: {
+            payment: {
+              select: {
+                id: true,
+                success: true,
+                externalId: true,
+              },
             },
           },
-        },
-      });
-      const successPayment = bookingWithPayment?.payment?.find((item) => item.success);
-      if (successPayment) {
-        paymentExternalId = successPayment.externalId;
+        });
+        const successPayment = bookingWithPayment?.payment?.find((item) => item.success);
+        if (successPayment) {
+          paymentExternalId = successPayment.externalId;
+          paymentId = successPayment.id;
+        }
       }
 
       const paymentMetadata = {
@@ -528,7 +540,7 @@ export async function handleConfirmation(args: {
         externalId: paymentExternalId,
       };
 
-      payload.paymentId = bookingWithPayment?.payment?.[0].id;
+      payload.paymentId = paymentId;
       payload.metadata = {
         ...(paid ? paymentMetadata : {}),
       };

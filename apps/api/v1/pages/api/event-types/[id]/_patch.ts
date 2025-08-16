@@ -222,7 +222,7 @@ export async function patchHandler(req: NextApiRequest) {
   };
 
   if (hosts) {
-    await ensureOnlyMembersAsHosts(req, parsedBody);
+    await ensureOnlyMembersAsHosts(req, { hosts, teamId: parsedBody.teamId });
     data.hosts = {
       deleteMany: {},
       create: hosts.map((host) => ({
@@ -232,6 +232,7 @@ export async function patchHandler(req: NextApiRequest) {
     };
   }
   await checkPermissions(req, parsedBody);
+  await checkTeamEventEditPermission(req, { userId: req.userId, teamId: parsedBody.teamId });
   const eventType = await prisma.eventType.update({ where: { id }, data });
   return { event_type: schemaEventTypeReadPublic.parse(eventType) };
 }
@@ -243,7 +244,7 @@ async function checkPermissions(req: NextApiRequest, body: z.infer<typeof schema
   /** Only event type owners can modify it */
   const eventType = await prisma.eventType.findFirst({ where: { id, userId } });
   if (!eventType) throw new HttpError({ statusCode: 403, message: "Forbidden" });
-  await checkTeamEventEditPermission(req, body);
+  await checkTeamEventEditPermission(req, { userId, teamId: body.teamId });
 }
 
 export default defaultResponder(patchHandler);

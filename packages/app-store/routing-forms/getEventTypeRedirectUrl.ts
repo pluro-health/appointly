@@ -64,7 +64,7 @@ export function getAbsoluteEventTypeRedirectUrl({
 }) {
   eventTypeRedirectUrl = `${eventTypeRedirectUrl}${isEmbed ? "/embed" : ""}`;
   // It could be using the old(before migration) username/team-slug or it could be using the new one(after migration)
-  // If it's using the old one, it would work by redirection as long as we use CAL_URL(which is non-org domain)
+  // If it's using the old one, it would work by redirection as long as we use WEB_URL(which is non-org domain)
   // But if it's using the new one, it has to use the org domain.
   // The format is /user/abc or /team/team1/abc
   const { username: usernameInRedirectUrl, teamSlug: teamSlugInRedirectUrl } =

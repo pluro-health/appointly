@@ -3,7 +3,7 @@ import { parseRequestData } from "app/api/parseRequestData";
 import { NextResponse, type NextRequest } from "next/server";
 
 import calcomSignupHandler from "@calcom/feature-auth/signup/handlers/calcomHandler";
-import selfHostedSignupHandler from "@calcom/feature-auth/signup/handlers/selfHostedHandler";
+import selfHostedSignupHandlerWithInvitation from "@calcom/feature-auth/signup/handlers/selfHostedHandlerWithInvitation";
 import { FeaturesRepository } from "@calcom/features/flags/features.repository";
 import { IS_PREMIUM_USERNAME_ENABLED } from "@calcom/lib/constants";
 import getIP from "@calcom/lib/getIP";
@@ -20,7 +20,7 @@ async function ensureSignupIsEnabled(body: Record<string, string>) {
     })
     .parse(body);
 
-  // Still allow signups if there is a team invite
+  // Still allow signups if there is a team invite or invitation token
   if (token) return;
 
   const featuresRepository = new FeaturesRepository(prisma);
@@ -57,7 +57,8 @@ async function handler(req: NextRequest) {
       return await calcomSignupHandler(body);
     }
 
-    return await selfHostedSignupHandler(body);
+    // Use the invitation-enabled handler for better admin-controlled registration
+    return await selfHostedSignupHandlerWithInvitation(body);
   } catch (e) {
     if (e instanceof HttpError) {
       return NextResponse.json({ message: e.message }, { status: e.statusCode });

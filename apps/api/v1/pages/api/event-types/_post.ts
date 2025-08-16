@@ -276,13 +276,13 @@ async function postHandler(req: NextApiRequest) {
     ...parsedBody
   } = schemaEventTypeCreateBodyParams.parse(body || {});
 
-  let data: Prisma.EventTypeCreateArgs["data"] = {
+  let data = {
     ...parsedBody,
     userId: !!parsedBody.teamId ? null : userId,
     users: !!parsedBody.teamId ? undefined : { connect: { id: userId } },
     bookingLimits: bookingLimits === null ? Prisma.DbNull : bookingLimits,
     durationLimits: durationLimits === null ? Prisma.DbNull : durationLimits,
-  };
+  } as Prisma.EventTypeCreateArgs["data"];
 
   await checkPermissions(req);
 
@@ -292,14 +292,18 @@ async function postHandler(req: NextApiRequest) {
   }
 
   if (isSystemWideAdmin && parsedBody.userId && !parsedBody.teamId) {
-    data = { ...parsedBody, users: { connect: { id: parsedBody.userId } } };
+    data = {
+      ...parsedBody,
+      users: { connect: { id: parsedBody.userId } },
+      userId: undefined,
+    } as Prisma.EventTypeCreateArgs["data"];
   }
 
-  await checkTeamEventEditPermission(req, parsedBody);
-  await ensureOnlyMembersAsHosts(req, parsedBody);
+  await checkTeamEventEditPermission(req, { userId: parsedBody.userId, teamId: parsedBody.teamId });
+  await ensureOnlyMembersAsHosts(req, { hosts, teamId: parsedBody.teamId });
 
-  if (hosts) {
-    data.hosts = { createMany: { data: hosts } };
+  if (hosts && hosts.length > 0) {
+    (data as any).hosts = { createMany: { data: hosts } };
   }
 
   const eventType = await prisma.eventType.create({ data, include: { hosts: true } });

@@ -8,24 +8,25 @@ import { getCalEventResponses } from "@calcom/features/bookings/lib/getCalEventR
 import getWebhooks from "@calcom/features/webhooks/lib/getWebhooks";
 import { deleteWebhookScheduledTriggers } from "@calcom/features/webhooks/lib/scheduleTrigger";
 import sendPayload from "@calcom/features/webhooks/lib/sendOrSchedulePayload";
+import { AppointlyRefundService } from "@calcom/lib/appointly-refund-service";
 import { CalendarEventBuilder } from "@calcom/lib/builders/CalendarEvent/builder";
 import { CalendarEventDirector } from "@calcom/lib/builders/CalendarEvent/director";
 import { getDelegationCredentialOrRegularCredential } from "@calcom/lib/delegationCredential/server";
 import { getBookerBaseUrl } from "@calcom/lib/getBookerUrl/server";
 import getOrgIdFromMemberOrTeamId from "@calcom/lib/getOrgIdFromMemberOrTeamId";
 import { getTeamIdFromEventType } from "@calcom/lib/getTeamIdFromEventType";
+import { isPrismaObjOrUndefined } from "@calcom/lib/isPrismaObj";
 import logger from "@calcom/lib/logger";
 import { safeStringify } from "@calcom/lib/safeStringify";
 import { getUsersCredentialsIncludeServiceAccountKey } from "@calcom/lib/server/getUsersCredentials";
 import { getTranslation } from "@calcom/lib/server/i18n";
 import { WorkflowRepository } from "@calcom/lib/server/repository/workflow";
-import { BookingWebhookFactory } from "@calcom/lib/server/service/BookingWebhookFactory";
 import { deleteMeeting } from "@calcom/lib/videoClient";
 import { prisma } from "@calcom/prisma";
-import type { WebhookTriggerEvents } from "@calcom/prisma/enums";
-import { BookingStatus } from "@calcom/prisma/enums";
+import type { WebhookTriggerEvents } from "@calcom/prisma/client";
+import { BookingStatus } from "@calcom/prisma/client";
 import type { EventTypeMetadata } from "@calcom/prisma/zod-utils";
-import type { Person } from "@calcom/types/Calendar";
+import type { CalendarEvent, Person } from "@calcom/types/Calendar";
 
 import { TRPCError } from "@trpc/server";
 
@@ -109,7 +110,7 @@ export const requestRescheduleHandler = async ({ ctx, input }: RequestReschedule
 
   if (bookingBelongsToTeam && bookingToReschedule.eventType?.teamId) {
     const userTeamIds = userTeams.teams.map((item) => item.teamId);
-    if (userTeamIds.indexOf(bookingToReschedule.eventType?.teamId) === -1) {
+    if (userTeamIds.indexOf(bookingToReschedule?.eventType?.teamId) === -1) {
       throw new TRPCError({ code: "FORBIDDEN", message: "User isn't a member on the team" });
     }
     log.debug(
@@ -162,6 +163,52 @@ export const requestRescheduleHandler = async ({ ctx, input }: RequestReschedule
   //cancel workflow reminders of previous booking
   await WorkflowRepository.deleteAllWorkflowReminders(bookingToReschedule.workflowReminders);
 
+  // Process Easebuzz refund if payment exists (owner cancelled, so 100% refund)
+  try {
+    const easebuzzPayment = await prisma.easebuzzPayment.findFirst({
+      where: {
+        bookingId: bookingToReschedule.id,
+        status: "SUCCESS",
+      },
+    });
+
+    if (easebuzzPayment) {
+      log.info("Processing Easebuzz refund for owner-cancelled booking", {
+        bookingId: bookingToReschedule.id,
+        bookingUid: bookingToReschedule.uid,
+        easebuzzTxnId: easebuzzPayment.easebuzzTxnId,
+      });
+
+      const refundService = new AppointlyRefundService();
+      const refundResult = await refundService.processRefund({
+        bookingId: bookingToReschedule.id,
+        refundPercentage: 100, // 100% refund for owner cancellation
+        reason: `Owner rescheduled booking: ${cancellationReason || "No reason provided"}`,
+        cancelledBy: user.email || user.username || "unknown",
+        isEventOwnerCancellation: true,
+      });
+
+      if (refundResult.success) {
+        log.info("Easebuzz refund processed successfully", {
+          bookingId: bookingToReschedule.id,
+          refundId: refundResult.refundId,
+          refundAmount: refundResult.refundAmount,
+        });
+      } else {
+        log.error("Easebuzz refund failed", {
+          bookingId: bookingToReschedule.id,
+          message: refundResult.message,
+        });
+      }
+    }
+  } catch (error) {
+    log.error("Error processing Easebuzz refund during reschedule", {
+      bookingId: bookingToReschedule.id,
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+    // Don't throw the error to prevent blocking the reschedule flow
+  }
+
   const [mainAttendee] = bookingToReschedule.attendees;
   // @NOTE: Should we assume attendees language?
   const tAttendees = await getTranslation(mainAttendee.locale ?? "en", "common");
@@ -182,7 +229,7 @@ export const requestRescheduleHandler = async ({ ctx, input }: RequestReschedule
   const [userAsPeopleType] = usersToPeopleType([user], userTranslation);
   const organizer = {
     ...userAsPeopleType,
-    email: bookingToReschedule.userPrimaryEmail ?? userAsPeopleType.email,
+    email: bookingToReschedule?.userPrimaryEmail ?? userAsPeopleType.email,
   };
 
   const builder = new CalendarEventBuilder();
@@ -276,38 +323,31 @@ export const requestRescheduleHandler = async ({ ctx, input }: RequestReschedule
     eventType?.metadata as EventTypeMetadata
   );
 
-  const calEventResponses = getCalEventResponses({
-    booking: bookingToReschedule,
-    bookingFields: bookingToReschedule.eventType?.bookingFields ?? null,
-  });
-
-  const webhookFactory = new BookingWebhookFactory();
-  const payload = webhookFactory.createCancelledEventPayload({
-    bookingId: bookingToReschedule.id,
-    title: bookingToReschedule.title,
-    eventSlug: event.slug ?? null,
-    description: bookingToReschedule.description,
-    customInputs: bookingToReschedule.customInputs,
-    responses: calEventResponses.responses,
-    userFieldsResponses: calEventResponses.userFieldsResponses,
-    startTime: bookingToReschedule.startTime ? dayjs(bookingToReschedule.startTime).format() : "",
-    endTime: bookingToReschedule.endTime ? dayjs(bookingToReschedule.endTime).format() : "",
+  const evt: CalendarEvent = {
+    title: bookingToReschedule?.title,
+    type: event && event.slug ? event.slug : bookingToReschedule.title,
+    description: bookingToReschedule?.description || "",
+    customInputs: isPrismaObjOrUndefined(bookingToReschedule.customInputs),
+    ...getCalEventResponses({
+      booking: bookingToReschedule,
+      bookingFields: bookingToReschedule.eventType?.bookingFields ?? null,
+    }),
+    startTime: bookingToReschedule?.startTime ? dayjs(bookingToReschedule.startTime).format() : "",
+    endTime: bookingToReschedule?.endTime ? dayjs(bookingToReschedule.endTime).format() : "",
     organizer,
     attendees: usersToPeopleType(
       // username field doesn't exists on attendee but could be in the future
       bookingToReschedule.attendees as unknown as PersonAttendeeCommonFields[],
       tAttendees
     ),
-    uid: bookingToReschedule.uid,
-    location: bookingToReschedule.location,
-    destinationCalendar: bookingToReschedule.destinationCalendar,
+    uid: bookingToReschedule?.uid,
+    location: bookingToReschedule?.location,
+    destinationCalendar: bookingToReschedule?.destinationCalendar
+      ? [bookingToReschedule?.destinationCalendar]
+      : [],
     cancellationReason: `Please reschedule. ${cancellationReason}`, // TODO::Add i18-next for this
-    iCalUID: bookingToReschedule.iCalUID,
-    ...(bookingToReschedule.smsReminderNumber && {
-      smsReminderNumber: bookingToReschedule.smsReminderNumber,
-    }),
-    cancelledBy: user.email,
-  });
+    iCalUID: bookingToReschedule?.iCalUID,
+  };
 
   // Send webhook
   const eventTrigger: WebhookTriggerEvents = "BOOKING_CANCELLED";
@@ -315,7 +355,7 @@ export const requestRescheduleHandler = async ({ ctx, input }: RequestReschedule
   const teamId = await getTeamIdFromEventType({
     eventType: {
       team: { id: bookingToReschedule.eventType?.teamId ?? null },
-      parentId: bookingToReschedule.eventType?.parentId ?? null,
+      parentId: bookingToReschedule?.eventType?.parentId ?? null,
     },
   });
 
@@ -334,9 +374,13 @@ export const requestRescheduleHandler = async ({ ctx, input }: RequestReschedule
   const webhooks = await getWebhooks(subscriberOptions);
 
   const promises = webhooks.map((webhook) =>
-    sendPayload(webhook.secret, eventTrigger, new Date().toISOString(), webhook, payload).catch((e) => {
+    sendPayload(webhook.secret, eventTrigger, new Date().toISOString(), webhook, {
+      ...evt,
+      smsReminderNumber: bookingToReschedule.smsReminderNumber || undefined,
+      cancelledBy: user.email,
+    }).catch((e) => {
       log.error(
-        `Error executing webhook for event: ${eventTrigger}, URL: ${webhook.subscriberUrl}, bookingId: ${payload.bookingId}, bookingUid: ${payload.uid}`,
+        `Error executing webhook for event: ${eventTrigger}, URL: ${webhook.subscriberUrl}, bookingId: ${evt.bookingId}, bookingUid: ${evt.uid}`,
         safeStringify(e)
       );
     })

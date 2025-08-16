@@ -91,6 +91,57 @@ export function ManageLink(props: { calEvent: CalendarEvent; attendee: Person })
             </span>
           )}
         </p>
+
+        {hasCancelLink && (
+          <div
+            style={{
+              marginTop: "20px",
+              padding: "16px",
+              backgroundColor: "#f9fafb",
+              borderRadius: "8px",
+              border: "1px solid #e5e7eb",
+            }}>
+            <p
+              style={{
+                fontWeight: 500,
+                fontSize: "14px",
+                lineHeight: "20px",
+                color: "#374151",
+                margin: "0 0 8px 0",
+              }}>
+              <>{t("cancellation_policy")}</>
+            </p>
+            <p
+              style={{
+                fontSize: "13px",
+                lineHeight: "18px",
+                color: "#6b7280",
+                margin: "0",
+              }}>
+              <>
+                {t("cancellation_policy_description", {
+                  hours: "24",
+                })}
+              </>
+            </p>
+            <p
+              style={{
+                fontSize: "13px",
+                lineHeight: "18px",
+                color: "#6b7280",
+                margin: "8px 0 0 0",
+              }}>
+              <a
+                href={cancelLink}
+                style={{
+                  color: "#2563eb",
+                  textDecoration: "underline",
+                }}>
+                <>{t("manage_your_booking")}</>
+              </a>
+            </p>
+          </div>
+        )}
       </div>
     );
   }

@@ -11,6 +11,9 @@ import { eventTypeMetaDataSchemaWithTypedApps } from "@calcom/prisma/zod-utils";
 export function getPaymentAppData(
   _eventType: Pick<BookerEvent, "price" | "currency"> & {
     metadata: z.infer<typeof EventTypeMetaDataSchema>;
+    consultationPrice?: number | null;
+    paymentCurrency?: string;
+    requiresPayment?: boolean;
   },
   forcedGet?: boolean
 ) {
@@ -18,6 +21,22 @@ export function getPaymentAppData(
     ..._eventType,
     metadata: eventTypeMetaDataSchemaWithTypedApps.parse(_eventType.metadata),
   };
+
+  // Check for new consultation price fields first
+  if (eventType.requiresPayment && eventType.consultationPrice && eventType.consultationPrice > 0) {
+    return {
+      enabled: true,
+      price: eventType.consultationPrice,
+      currency: eventType.paymentCurrency || "INR",
+      appId: "consultation" as any, // Special identifier for consultation fees
+      paymentOption: "ON_BOOKING" as any,
+      credentialId: undefined,
+      refundPolicy: undefined,
+      refundDaysCount: undefined,
+      refundCountCalendarDays: undefined,
+    };
+  }
+
   const metadataApps = eventType.metadata?.apps;
   if (!metadataApps) {
     return { enabled: false, price: 0, currency: "usd", appId: null };

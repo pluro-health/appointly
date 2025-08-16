@@ -547,28 +547,6 @@ export const AvailabilitySettings = forwardRef<AvailabilitySettingsFormRef, Avai
                             }
                           />
                         </div>
-                        {!isPlatform && (
-                          <>
-                            <hr className="border-subtle my-7" />
-                            <div className="rounded-md md:block">
-                              <Skeleton
-                                as="h3"
-                                className="mb-0 inline-block text-sm font-medium"
-                                waitForTranslation={!isPlatform}>
-                                {t("something_doesnt_look_right")}
-                              </Skeleton>
-                              <div className="mt-3 flex">
-                                <Skeleton
-                                  as={Button}
-                                  href="/availability/troubleshoot"
-                                  color="secondary"
-                                  waitForTranslation={!isPlatform}>
-                                  {t("launch_troubleshooter")}
-                                </Skeleton>
-                              </div>
-                            </div>
-                          </>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -682,23 +660,6 @@ export const AvailabilitySettings = forwardRef<AvailabilitySettingsFormRef, Avai
                 ) : (
                   <>
                     <hr className="border-subtle my-6 mr-8" />
-                    <div className="rounded-md">
-                      <Skeleton
-                        as="h3"
-                        className="mb-0 inline-block text-sm font-medium"
-                        waitForTranslation={!isPlatform}>
-                        {t("something_doesnt_look_right")}
-                      </Skeleton>
-                      <div className="mt-3 flex">
-                        <Skeleton
-                          as={Button}
-                          href="/availability/troubleshoot"
-                          color="secondary"
-                          waitForTranslation={!isPlatform}>
-                          {t("launch_troubleshooter")}
-                        </Skeleton>
-                      </div>
-                    </div>
                   </>
                 )}
               </div>

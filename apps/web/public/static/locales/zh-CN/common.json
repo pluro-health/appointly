@@ -1842,7 +1842,7 @@
   "fixed_round_robin": "固定轮流模式",
   "add_one_fixed_attendee": "添加一名固定参与者，并由多名参与者轮流担任。",
   "calcom_is_better_with_team": "{{appName}} 更适合团队",
-  "the_calcom_team": "{{companyName}} 团队",
+  "the_appointly_team": "{{companyName}} 团队",
   "add_your_team_members": "将您的团队成员添加到您的活动类型。使用集体日程安排来包括所有人或以轮流安排的方式找到最适合的人员。",
   "booking_limit_reached": "已达到此活动类型的预约限制",
   "duration_limit_reached": "已达到此活动类型的时长限制",

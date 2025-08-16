@@ -681,6 +681,9 @@ export class EventTypeRepository {
       },
       userId: true,
       price: true,
+      consultationPrice: true,
+      paymentCurrency: true,
+      requiresPayment: true,
       children: {
         select: {
           owner: {
@@ -970,6 +973,9 @@ export class EventTypeRepository {
       },
       userId: true,
       price: true,
+      consultationPrice: true,
+      paymentCurrency: true,
+      requiresPayment: true,
       children: {
         select: {
           owner: {

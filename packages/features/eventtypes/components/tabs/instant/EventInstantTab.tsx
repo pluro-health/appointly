@@ -10,6 +10,7 @@ export const EventInstantTab = ({
 }: Pick<EventTypeSetupProps, "eventType"> & { isTeamEvent: boolean }) => {
   const paymentAppData = getPaymentAppData({
     ...eventType,
+    consultationPrice: eventType.consultationPrice ? Number(eventType.consultationPrice) : null,
     metadata: eventTypeMetaDataSchemaWithTypedApps.parse(eventType.metadata),
   });
 

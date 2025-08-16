@@ -1,6 +1,21 @@
 /** @type {import("eslint").Linter.Config} */
 module.exports = {
   root: true,
+  ignorePatterns: [
+    "node_modules",
+    "apps/api/v2/dist",
+    "packages/platform/**/dist/*",
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/coverage/**",
+    "**/.turbo/**",
+    "**/**/.next",
+    "**/**/public",
+    "packages/prisma/zod",
+    "apps/web/public/embed",
+    "packages/ui/components/icon/dynamicIconImports.tsx",
+  ],
   extends: [
     "plugin:playwright/playwright-test",
     "next",
@@ -8,7 +23,7 @@ module.exports = {
     "turbo",
     "plugin:you-dont-need-lodash-underscore/compatible-warn",
   ],
-  plugins: ["unused-imports"],
+  plugins: ["unused-imports", "react", "react-hooks"],
   parserOptions: {
     tsconfigRootDir: __dirname,
     project: ["./apps/*/tsconfig.json", "./packages/*/tsconfig.json"],
@@ -18,10 +33,10 @@ module.exports = {
       rootDir: ["apps/*/", "packages/*/"],
     },
   },
-  ignorePatterns: ["**/node_modules/**", "**/dist/**", "**/build/**", "**/coverage/**", "**/.turbo/**"],
   rules: {
     "@next/next/no-img-element": "off",
     "@next/next/no-html-link-for-pages": "off",
+    "@next/next/no-sync-scripts": "off",
     "jsx-a11y/role-supports-aria-props": "off", // @see https://github.com/vercel/next.js/issues/27989#issuecomment-897638654
     "playwright/no-page-pause": "error",
     "react/jsx-curly-brace-presence": ["error", { props: "never", children: "never" }],

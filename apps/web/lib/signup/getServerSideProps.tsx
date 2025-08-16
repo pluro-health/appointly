@@ -76,30 +76,100 @@ export const getServerSideProps = async (ctx: GetServerSidePropsContext) => {
     };
   }
 
-  const verificationToken = await prisma.verificationToken.findUnique({
+  // First check if this is an invitation token
+  const invitationToken = await prisma.invitationToken.findUnique({
     where: {
       token,
     },
     include: {
-      team: {
+      invitedBy: {
         select: {
-          metadata: true,
-          isOrganization: true,
-          parentId: true,
-          parent: {
-            select: {
-              slug: true,
-              isOrganization: true,
-              organizationSettings: true,
-            },
-          },
-          slug: true,
-          organizationSettings: true,
+          id: true,
+          name: true,
+          email: true,
         },
       },
     },
   });
 
+  let verificationToken = null;
+
+  if (!invitationToken) {
+    // If not an invitation token, check if it's a verification token (team invite)
+    verificationToken = await prisma.verificationToken.findUnique({
+      where: {
+        token,
+      },
+      include: {
+        team: {
+          select: {
+            metadata: true,
+            isOrganization: true,
+            parentId: true,
+            parent: {
+              select: {
+                slug: true,
+                isOrganization: true,
+                organizationSettings: true,
+              },
+            },
+            slug: true,
+            organizationSettings: true,
+          },
+        },
+      },
+    });
+  }
+
+  // Handle invitation token validation
+  if (invitationToken) {
+    if (invitationToken.expiresAt < new Date()) {
+      return {
+        redirect: {
+          permanent: false,
+          destination: `/auth/error?error=Invitation token has expired`,
+        },
+      } as const;
+    }
+
+    if (invitationToken.usedAt) {
+      return {
+        redirect: {
+          permanent: false,
+          destination: `/auth/error?error=Invitation token has already been used`,
+        },
+      } as const;
+    }
+
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email: invitationToken.email },
+    });
+
+    if (existingUser) {
+      return {
+        redirect: {
+          permanent: false,
+          destination: `/auth/error?error=A user with this email already exists`,
+        },
+      } as const;
+    }
+
+    // Return props for invitation token
+    return {
+      props: {
+        ...props,
+        token,
+        prepopulateFormValues: {
+          email: invitationToken.email,
+          username: invitationToken.email.split("@")[0], // Default username from email
+        },
+        isInvitationToken: true,
+      },
+    };
+  }
+
+  // Handle verification token validation (existing logic)
   if (!verificationToken || verificationToken.expires < new Date()) {
     return {
       redirect: {

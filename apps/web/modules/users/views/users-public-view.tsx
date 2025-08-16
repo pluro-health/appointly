@@ -134,8 +134,25 @@ export function UserPage(props: PageProps) {
                 <div className="block w-full p-5">
                   <div className="flex flex-wrap items-center">
                     <h2 className="text-default pr-2 text-sm font-semibold">{type.title}</h2>
+                    {/* Show consultation price prominently for public view */}
+                    {(type as any).requiresPayment && (type as any).consultationPrice && (
+                      <span className="text-default ml-2 font-semibold text-green-600">
+                        ₹{(type as any).consultationPrice}
+                      </span>
+                    )}
                   </div>
-                  <EventTypeDescription eventType={type} isPublic={true} shortenDescription />
+                  <EventTypeDescription
+                    eventType={{
+                      ...type,
+                      consultationPrice: (type as any).consultationPrice
+                        ? Number((type as any).consultationPrice)
+                        : null,
+                      paymentCurrency: (type as any).paymentCurrency || undefined,
+                      requiresPayment: (type as any).requiresPayment || undefined,
+                    }}
+                    isPublic={true}
+                    shortenDescription
+                  />
                 </div>
               </Link>
             ))}

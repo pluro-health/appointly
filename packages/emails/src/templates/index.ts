@@ -13,6 +13,7 @@ export { SlugReplacementEmail } from "./SlugReplacementEmail";
 export { FeedbackEmail } from "./FeedbackEmail";
 export { ForgotPasswordEmail } from "./ForgotPasswordEmail";
 export { OrganizerCancelledEmail } from "./OrganizerCancelledEmail";
+export { OwnerCancelledWithRefundEmail } from "./OwnerCancelledWithRefundEmail";
 export { OrganizerReassignedEmail } from "./OrganizerReassignedEmail";
 export { OrganizerLocationChangeEmail } from "./OrganizerLocationChangeEmail";
 export { OrganizerPaymentRefundFailedEmail } from "./OrganizerPaymentRefundFailedEmail";

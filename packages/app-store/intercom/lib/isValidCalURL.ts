@@ -1,4 +1,4 @@
-import { CAL_URL } from "@calcom/lib/constants";
+import { WEB_URL } from "@calcom/lib/constants";
 
 import type { TextComponent } from "../lib";
 
@@ -9,13 +9,13 @@ import type { TextComponent } from "../lib";
  */
 export async function isValidCalURL(url: string) {
   const regex = new RegExp(
-    `^https://(?:[a-zA-Z0-9-]+\\.)?${CAL_URL.replace("https://", "")}/(team/)?(org/)?`,
+    `^https://(?:[a-zA-Z0-9-]+\\.)?${WEB_URL.replace("https://", "")}/(team/)?(org/)?`,
     "i"
   );
 
   const error: TextComponent = {
     type: "text",
-    text: `This is not a valid ${CAL_URL.replace("https://", "")} link`,
+    text: `This is not a valid ${WEB_URL.replace("https://", "")} link`,
     style: "error",
     align: "left",
   };

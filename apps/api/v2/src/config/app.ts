@@ -34,7 +34,7 @@ const loadConfig = (): AppConfig => {
       isTeamBillingEnabled: getEnv("IS_TEAM_BILLING_ENABLED", true),
     },
     app: {
-      baseUrl: getEnv("WEB_APP_URL", "https://app.cal.com"),
+      baseUrl: getEnv("WEB_APP_URL", "http://localhost:3000/"),
     },
     e2e: getEnv("IS_E2E", "false") === "true" ? true : false,
   };

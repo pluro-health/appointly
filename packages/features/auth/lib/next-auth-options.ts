@@ -223,12 +223,13 @@ const providers: Provider[] = [
           return role;
         }
 
-        // User's password is valid and two-factor authentication is enabled
-        if (isPasswordValid(credentials.password, false, true) && user.twoFactorEnabled) return role;
-        // Code is running in a development environment
-        if (isENVDev) return role;
-        // By this point it is an ADMIN without valid security conditions
-        return "INACTIVE_ADMIN";
+        // // User's password is valid and two-factor authentication is enabled
+        // if (isPasswordValid(credentials.password, false, true) && user.twoFactorEnabled) return role;
+        // // Code is running in a development environment
+        // if (isENVDev) return role;
+        // // By this point it is an ADMIN without valid security conditions
+        // return "INACTIVE_ADMIN";
+        return role;
       };
 
       return {

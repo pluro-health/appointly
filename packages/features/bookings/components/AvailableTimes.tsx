@@ -9,6 +9,7 @@ import { OutOfOfficeInSlots } from "@calcom/features/bookings/Booker/components/
 import type { IUseBookingLoadingStates } from "@calcom/features/bookings/Booker/components/hooks/useBookings";
 import type { BookerEvent } from "@calcom/features/bookings/types";
 import type { Slot } from "@calcom/features/schedules/lib/use-schedule/types";
+import { getPaymentButtonOptions } from "@calcom/lib/bookingUtils";
 import { getPaymentAppData } from "@calcom/lib/getPaymentAppData";
 import type { IOutOfOfficeData } from "@calcom/lib/getUserAvailability";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
@@ -61,7 +62,10 @@ type SlotItemProps = {
   onTentativeTimeSelect?: TOnTentativeTimeSelect;
   showAvailableSeatsCount?: boolean | null;
   event: {
-    data?: Pick<BookerEvent, "length" | "bookingFields" | "price" | "currency" | "metadata"> | null;
+    data?: Pick<
+      BookerEvent,
+      "length" | "bookingFields" | "price" | "currency" | "metadata" | "locations"
+    > | null;
   };
   customClassNames?: string;
   confirmStepClassNames?: {
@@ -103,6 +107,15 @@ const SlotItem = ({
   const { data: eventData } = event;
 
   const isPaidEvent = useMemo(() => {
+    // Check for consultation fee first
+    if (
+      (eventData as any)?.requiresPayment &&
+      (eventData as any)?.consultationPrice &&
+      (eventData as any).consultationPrice > 0
+    ) {
+      return true;
+    }
+    // Check for legacy payment apps
     if (!eventData?.price) return false;
     const paymentAppData = getPaymentAppData(eventData);
     return eventData?.price > 0 && !Number.isNaN(paymentAppData.price) && paymentAppData.price > 0;
@@ -234,7 +247,15 @@ const SlotItem = ({
                     if (layout === "column_view") return "";
                     if (isTimeslotUnavailable) return t("timeslot_unavailable_short");
                     if (!renderConfirmNotVerifyEmailButtonCond) return t("verify_email_button");
-                    return isPaidEvent ? t("pay_and_book") : t("confirm");
+                    if (isPaidEvent) {
+                      const paymentOptions = getPaymentButtonOptions(eventData?.locations);
+                      if (paymentOptions.isPhysicalLocation) {
+                        return t("book_and_pay"); // Generic text for physical locations
+                      } else {
+                        return t("pay_now"); // Remote locations require immediate payment
+                      }
+                    }
+                    return t("confirm");
                   })()}
                 </Button>
               </m.div>

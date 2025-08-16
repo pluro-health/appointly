@@ -47,7 +47,7 @@ ${this.changeEvent.user.emailFrom},
 ${this.changeEvent.language("new_email_address")}
 ${this.changeEvent.user.emailTo},
 ${this.changeEvent.verificationEmailLink}
-${this.changeEvent.language("happy_scheduling")} ${this.changeEvent.language("the_calcom_team", {
+${this.changeEvent.language("happy_scheduling")} ${this.changeEvent.language("the_appointly_team", {
       companyName: COMPANY_NAME,
     })}
 `.replace(/(<([^>]+)>)/gi, "");

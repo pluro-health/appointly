@@ -97,8 +97,24 @@ function TeamPage({ team, considerUnpublished, isValidOrgDomain }: PageProps) {
               <div className="flex-shrink">
                 <div className="flex flex-wrap items-center space-x-2 rtl:space-x-reverse">
                   <h2 className=" text-default text-sm font-semibold">{type.title}</h2>
+                  {/* Show consultation price prominently for team view */}
+                  {(type as any).requiresPayment && (type as any).consultationPrice && (
+                    <span className="text-default font-semibold text-green-600">
+                      ₹{(type as any).consultationPrice}
+                    </span>
+                  )}
                 </div>
-                <EventTypeDescription className="text-sm" eventType={type} />
+                <EventTypeDescription
+                  className="text-sm"
+                  eventType={{
+                    ...type,
+                    consultationPrice: (type as any).consultationPrice
+                      ? Number((type as any).consultationPrice)
+                      : null,
+                    paymentCurrency: (type as any).paymentCurrency || undefined,
+                    requiresPayment: (type as any).requiresPayment || undefined,
+                  }}
+                />
               </div>
               <div className="mt-1 self-center">
                 <UserAvatarGroup

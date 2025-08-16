@@ -1842,7 +1842,7 @@
   "fixed_round_robin": "סבב קבוע",
   "add_one_fixed_attendee": "הוסף/י משתתף/ת קבוע/ה אחד/ת ועבור/י בסבב בין מספר משתתפים.",
   "calcom_is_better_with_team": "{{appName}} טובה יותר לשימוש עם צוותים",
-  "the_calcom_team": "הצוות של {{companyName}}",
+  "the_appointly_team": "הצוות של {{companyName}}",
   "add_your_team_members": "הוסף/י את חברי הצוות לסוגי האירועים שלך. השתמש/י בתזמון שיתופי כדי לכלול את כולם או מצא/י את האדם הכי מתאים בעזרת תזמון בסבב.",
   "booking_limit_reached": "הגעת להגבלת ההזמנות עבור סוג אירוע זה",
   "duration_limit_reached": "מגבלת הזמן לארוע זה עבר",

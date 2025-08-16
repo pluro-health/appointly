@@ -206,7 +206,7 @@ export class AvailableSlotsService {
 
     const usersWithOldSelectedCalendars = usersForDynamicEventType.map((user) => withSelectedCalendars(user));
 
-    const isDynamicAllowed = !usersWithOldSelectedCalendars.some((user) => !user.allowDynamicBooking);
+    const isDynamicAllowed = false;
     if (!isDynamicAllowed) {
       throw new TRPCError({
         message: "Some of the users in this group do not allow dynamic booking",
@@ -400,7 +400,12 @@ export class AvailableSlotsService {
         if (!limit) continue;
 
         const unit = intervalLimitKeyToUnit(key);
-        const periodStartDates = this.dependencies.userAvailabilityService.getPeriodStartDatesBetween(dateFrom, dateTo, unit, timeZone);
+        const periodStartDates = this.dependencies.userAvailabilityService.getPeriodStartDatesBetween(
+          dateFrom,
+          dateTo,
+          unit,
+          timeZone
+        );
 
         for (const periodStart of periodStartDates) {
           if (globalLimitManager.isAlreadyBusy(periodStart, unit, timeZone)) continue;
@@ -435,7 +440,12 @@ export class AvailableSlotsService {
           if (!limit) continue;
 
           const unit = intervalLimitKeyToUnit(key);
-          const periodStartDates = this.dependencies.userAvailabilityService.getPeriodStartDatesBetween(dateFrom, dateTo, unit, timeZone);
+          const periodStartDates = this.dependencies.userAvailabilityService.getPeriodStartDatesBetween(
+            dateFrom,
+            dateTo,
+            unit,
+            timeZone
+          );
 
           for (const periodStart of periodStartDates) {
             if (limitManager.isAlreadyBusy(periodStart, unit, timeZone)) continue;
@@ -486,7 +496,12 @@ export class AvailableSlotsService {
           if (!limit) continue;
 
           const unit = intervalLimitKeyToUnit(key);
-          const periodStartDates = this.dependencies.userAvailabilityService.getPeriodStartDatesBetween(dateFrom, dateTo, unit, timeZone);
+          const periodStartDates = this.dependencies.userAvailabilityService.getPeriodStartDatesBetween(
+            dateFrom,
+            dateTo,
+            unit,
+            timeZone
+          );
 
           for (const periodStart of periodStartDates) {
             if (limitManager.isAlreadyBusy(periodStart, unit, timeZone)) continue;
@@ -586,7 +601,12 @@ export class AvailableSlotsService {
       if (!limit) continue;
 
       const unit = intervalLimitKeyToUnit(key);
-      const periodStartDates = this.dependencies.userAvailabilityService.getPeriodStartDatesBetween(dateFrom, dateTo, unit, timeZone);
+      const periodStartDates = this.dependencies.userAvailabilityService.getPeriodStartDatesBetween(
+        dateFrom,
+        dateTo,
+        unit,
+        timeZone
+      );
 
       for (const periodStart of periodStartDates) {
         if (globalLimitManager.isAlreadyBusy(periodStart, unit, timeZone)) continue;
@@ -634,7 +654,12 @@ export class AvailableSlotsService {
         if (!limit) continue;
 
         const unit = intervalLimitKeyToUnit(key);
-        const periodStartDates = this.dependencies.userAvailabilityService.getPeriodStartDatesBetween(dateFrom, dateTo, unit, timeZone);
+        const periodStartDates = this.dependencies.userAvailabilityService.getPeriodStartDatesBetween(
+          dateFrom,
+          dateTo,
+          unit,
+          timeZone
+        );
 
         for (const periodStart of periodStartDates) {
           if (limitManager.isAlreadyBusy(periodStart, unit, timeZone)) continue;

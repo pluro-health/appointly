@@ -1842,7 +1842,7 @@
   "fixed_round_robin": "স্থির রাউন্ড রবিন",
   "add_one_fixed_attendee": "বেশ কয়েকজন উপস্থিতদের মাধ্যমে একটি স্থির অংশগ্রহণকারী এবং রাউন্ড রবিন যুক্ত করুন।",
   "calcom_is_better_with_team": "{{appName}} দলগুলির সাথে ভাল",
-  "the_calcom_team": "দ্য {{companyName}} দল",
+  "the_appointly_team": "দ্য {{companyName}} দল",
   "add_your_team_members": "আপনার ইভেন্টের প্রকারে আপনার দলের সদস্যদের যুক্ত করুন। ",
   "booking_limit_reached": "এই ইভেন্টের ধরণের জন্য বুকিংয়ের সীমা পৌঁছেছে",
   "duration_limit_reached": "এই ইভেন্টের ধরণের জন্য সময়কাল সীমা পৌঁছেছে",

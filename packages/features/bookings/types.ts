@@ -31,42 +31,44 @@ type BookerEventProfile = Pick<PublicEvent["profile"], "name" | "image" | "booke
 // marked as required to keep responsibility on consumers to handle the case where slots is undefined
 export type Slots = Required<NonNullable<DatePickerProps["slots"]>>;
 
-export type BookerEvent = Pick<
-  PublicEvent,
-  | "id"
-  | "length"
-  | "slug"
-  | "schedulingType"
-  | "recurringEvent"
-  | "entity"
-  | "locations"
-  | "metadata"
-  | "isDynamic"
-  | "requiresConfirmation"
-  | "price"
-  | "currency"
-  | "lockTimeZoneToggleOnBookingPage"
-  | "lockedTimeZone"
-  | "schedule"
-  | "seatsPerTimeSlot"
-  | "title"
-  | "description"
-  | "forwardParamsSuccessRedirect"
-  | "successRedirectUrl"
-  | "subsetOfHosts"
-  | "bookingFields"
-  | "seatsShowAvailabilityCount"
-  | "isInstantEvent"
-  | "instantMeetingParameters"
-  | "fieldTranslations"
-  | "autoTranslateDescriptionEnabled"
-  | "disableCancelling"
-  | "disableRescheduling"
-  | "interfaceLanguage"
-> & {
+export type BookerEvent = {
+  id: PublicEvent["id"];
+  length: PublicEvent["length"];
+  slug: PublicEvent["slug"];
+  schedulingType: PublicEvent["schedulingType"];
+  recurringEvent: PublicEvent["recurringEvent"];
+  entity: PublicEvent["entity"];
+  locations: PublicEvent["locations"];
+  metadata: PublicEvent["metadata"];
+  isDynamic: PublicEvent["isDynamic"];
+  requiresConfirmation: PublicEvent["requiresConfirmation"];
+  price: PublicEvent["price"];
+  currency: PublicEvent["currency"];
+  lockTimeZoneToggleOnBookingPage: PublicEvent["lockTimeZoneToggleOnBookingPage"];
+  lockedTimeZone: PublicEvent["lockedTimeZone"];
+  schedule: PublicEvent["schedule"];
+  seatsPerTimeSlot: PublicEvent["seatsPerTimeSlot"];
+  title: PublicEvent["title"];
+  description: PublicEvent["description"];
+  forwardParamsSuccessRedirect: PublicEvent["forwardParamsSuccessRedirect"];
+  successRedirectUrl: PublicEvent["successRedirectUrl"];
+  subsetOfHosts: PublicEvent["subsetOfHosts"];
+  bookingFields: PublicEvent["bookingFields"];
+  seatsShowAvailabilityCount: PublicEvent["seatsShowAvailabilityCount"];
+  isInstantEvent: PublicEvent["isInstantEvent"];
+  instantMeetingParameters: PublicEvent["instantMeetingParameters"];
+  fieldTranslations: PublicEvent["fieldTranslations"];
+  autoTranslateDescriptionEnabled: PublicEvent["autoTranslateDescriptionEnabled"];
+  disableCancelling: PublicEvent["disableCancelling"];
+  disableRescheduling: PublicEvent["disableRescheduling"];
+  interfaceLanguage: PublicEvent["interfaceLanguage"];
+  consultationPrice?: number | null;
+  paymentCurrency?: string;
+  requiresPayment?: boolean;
   subsetOfUsers: BookerEventUser[];
   showInstantEventConnectNowModal: boolean;
-} & { profile: BookerEventProfile };
+  profile: BookerEventProfile;
+};
 
 export type ValidationErrors<T extends object> = { key: FieldPath<T>; error: ErrorOption }[];
 

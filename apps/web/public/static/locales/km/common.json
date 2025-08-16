@@ -1842,7 +1842,7 @@
   "fixed_round_robin": "round robin ថេរ",
   "add_one_fixed_attendee": "បន្ថែមអ្នកចូលរួមម្នាក់ដែលថេរ និងវេនតាមចំនួនអ្នកចូលរួម។",
   "calcom_is_better_with_team": "{{appName}} ល្អជាងជាមួយក្រុម",
-  "the_calcom_team": "ក្រុម {{companyName}}",
+  "the_appointly_team": "ក្រុម {{companyName}}",
   "add_your_team_members": "បន្ថែមសមាជិកក្រុមរបស់អ្នកទៅប្រភេទព្រឹត្តិការណ៍របស់អ្នក។ ប្រើការកំណត់ពេលវេលារួមដើម្បីរួមបញ្ចូលគ្រប់គ្នា ឬស្វែងរកមនុស្សដែលសមស្របបំផុតជាមួយ round robin scheduling។",
   "booking_limit_reached": "ដែនកំណត់ការកក់សម្រាប់ប្រភេទព្រឹត្តិការណ៍នេះត្រូវបានឈានដល់",
   "duration_limit_reached": "បានឈានដល់កំណត់រយៈពេលសម្រាប់ប្រភេទព្រឹត្តិការណ៍នេះហើយ",
