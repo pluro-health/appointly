@@ -53,6 +53,7 @@ export default function AppointlyCancellationModal({
   const [selectedReason, setSelectedReason] = useState<string>("");
   const [confirmed, setConfirmed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showPolicy, setShowPolicy] = useState(false);
 
   const formatCurrency = (amount?: number) => `₹${(amount ?? 0).toFixed(2)}`;
 
@@ -119,7 +120,9 @@ export default function AppointlyCancellationModal({
             <h2 className="text-xl font-semibold tracking-tight text-slate-900">{t("cancel_booking")}</h2>
           </div>
         </div>
+
         <div className="space-y-7 p-7">
+          {/* Booking summary */}
           <div className="flex flex-col gap-2 rounded-xl border border-slate-100 bg-white/95 p-5 shadow-sm">
             <h4 className="text-lg font-medium text-slate-800">{booking.title}</h4>
             <div className="flex flex-col gap-0.5 text-sm text-gray-600">
@@ -136,6 +139,8 @@ export default function AppointlyCancellationModal({
               </div>
             </div>
           </div>
+
+          {/* Refund summary */}
           <div className="flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50/80 p-4">
             <Icon name="info" className="mt-0.5 h-5 w-5 text-blue-500" />
             <div>
@@ -147,6 +152,67 @@ export default function AppointlyCancellationModal({
               )}
             </div>
           </div>
+
+          {/* NEW: Cancellation & Refund Policy (collapsible) */}
+          <div className="rounded-xl border border-slate-200 bg-white/95">
+            <button
+              type="button"
+              onClick={() => setShowPolicy((s) => !s)}
+              className="flex w-full items-center justify-between gap-3 rounded-t-xl px-4 py-3 text-left hover:bg-slate-50"
+              aria-expanded={showPolicy}
+              aria-controls="appointly-policy">
+              <div className="flex items-center gap-2">
+                <Icon name="shield-check" className="h-5 w-5 text-slate-700" />
+                <span className="text-sm font-medium text-slate-800">Cancellation & Refund Policy</span>
+              </div>
+              <Icon name={showPolicy ? "chevron-up" : "chevron-down"} className="h-5 w-5 text-slate-600" />
+            </button>
+
+            {showPolicy && (
+              <div
+                id="appointly-policy"
+                className="space-y-3 border-t border-slate-200 px-4 py-4 text-sm text-slate-700">
+                <ul className="list-disc space-y-2 pl-5">
+                  <li>
+                    Cancellations made 24 hours or more before the appointment:{" "}
+                    {cancellationInfo.refundPercentage}% refund.
+                  </li>
+                  <li>Cancellations made less than 24 hours before the appointment: No refund.</li>
+                </ul>
+
+                {/* Contextual highlight for this booking */}
+                <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+                  <div className="flex items-start gap-2">
+                    <Icon name="info" className="mt-0.5 h-4 w-4" />
+                    <p className="text-[13px] leading-relaxed">
+                      For this booking:{" "}
+                      {isWithin24Hours ? (
+                        <>
+                          you are within 24 hours of the start time, so{" "}
+                          <span className="font-semibold">no refund</span> applies on cancellation.
+                        </>
+                      ) : cancellationInfo.refundEligible ? (
+                        <>
+                          you are outside 24 hours; an{" "}
+                          <span className="font-semibold">{cancellationInfo.refundPercentage}%</span> refund
+                          applies (estimated {formatCurrency(cancellationInfo.refundAmount)}).
+                        </>
+                      ) : (
+                        <>refunds are not applicable.</>
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                <p className="text-[12px] text-slate-500">
+                  Note: Refunds, where applicable, are typically processed back to the original payment method
+                  in 5–7 business days.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Reason selector */}
           <div className="flex flex-col gap-1">
             <Label htmlFor="reason-select" className="font-medium text-gray-800">
               Cancellation Reason <span className="text-red-400">*</span>
@@ -160,6 +226,8 @@ export default function AppointlyCancellationModal({
               className="w-full rounded-md border transition-all duration-150 focus:ring-2 focus:ring-blue-200"
             />
           </div>
+
+          {/* Acknowledgement */}
           <div className="flex items-start gap-2 rounded-md border border-slate-200 bg-slate-100 p-3">
             <Checkbox
               id="confirm-cancel"
@@ -171,6 +239,7 @@ export default function AppointlyCancellationModal({
             </Label>
           </div>
         </div>
+
         <DialogFooter className="flex justify-center gap-3 rounded-b-2xl border-t border-slate-200 bg-slate-50 px-7 py-4">
           <Button
             color="secondary"
@@ -180,7 +249,6 @@ export default function AppointlyCancellationModal({
             Keep Booking
           </Button>
           <Button
-            color="destructive"
             onClick={handleCancel}
             loading={isLoading}
             disabled={isCancelDisabled}

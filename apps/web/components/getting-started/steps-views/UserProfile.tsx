@@ -5,9 +5,7 @@ import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 
 import { useLocale } from "@calcom/lib/hooks/useLocale";
-import { useTelemetry } from "@calcom/lib/hooks/useTelemetry";
 import { md } from "@calcom/lib/markdownIt";
-import { telemetryEventTypes } from "@calcom/lib/telemetry";
 import turndown from "@calcom/lib/turndownService";
 import { localStorage } from "@calcom/lib/webstorage";
 import { trpc } from "@calcom/trpc/react";
@@ -30,12 +28,9 @@ const UserProfile = () => {
     defaultValues: { bio: user?.bio || "" },
   });
 
-  const { data: eventTypes } = trpc.viewer.eventTypes.list.useQuery();
   const [imageSrc, setImageSrc] = useState<string>(user?.avatar || "");
   const utils = trpc.useUtils();
   const router = useRouter();
-  const createEventType = trpc.viewer.eventTypes.create.useMutation();
-  const telemetry = useTelemetry();
   const [firstRender, setFirstRender] = useState(true);
 
   // Create a separate mutation for avatar updates
@@ -52,18 +47,6 @@ const UserProfile = () => {
   // Original mutation remains for onboarding completion
   const mutation = trpc.viewer.me.updateProfile.useMutation({
     onSuccess: async () => {
-      try {
-        if (eventTypes?.length === 0) {
-          await Promise.all(
-            DEFAULT_EVENT_TYPES.map(async (event) => {
-              return createEventType.mutate(event);
-            })
-          );
-        }
-      } catch (error) {
-        console.error(error);
-      }
-
       await utils.viewer.me.get.refetch();
       const redirectUrl = localStorage.getItem("onBoardingRedirect");
       localStorage.removeItem("onBoardingRedirect");
@@ -76,9 +59,6 @@ const UserProfile = () => {
 
   const onSubmit = handleSubmit((data: { bio: string }) => {
     const { bio } = data;
-
-    telemetry.event(telemetryEventTypes.onboardingFinished);
-
     mutation.mutate({
       bio,
       completedOnboarding: true,
@@ -90,25 +70,6 @@ const UserProfile = () => {
       avatarUrl: newAvatar,
     });
   }
-
-  const DEFAULT_EVENT_TYPES = [
-    {
-      title: t("15min_meeting"),
-      slug: "15min",
-      length: 15,
-    },
-    {
-      title: t("30min_meeting"),
-      slug: "30min",
-      length: 30,
-    },
-    {
-      title: t("secret_meeting"),
-      slug: "secret",
-      length: 15,
-      hidden: true,
-    },
-  ];
 
   return (
     <form onSubmit={onSubmit}>

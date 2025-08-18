@@ -38,7 +38,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuPortal,
 } from "@calcom/ui/components/dropdown";
-import { TextAreaField, Label } from "@calcom/ui/components/form";
+import { TextAreaField, Label, TextArea, Checkbox } from "@calcom/ui/components/form";
 import { Icon } from "@calcom/ui/components/icon";
 import { MeetingTimeInTimezones } from "@calcom/ui/components/popover";
 import type { ActionType } from "@calcom/ui/components/table";
@@ -52,7 +52,6 @@ import { AddGuestsDialog } from "@components/dialog/AddGuestsDialog";
 import { ChargeCardDialog } from "@components/dialog/ChargeCardDialog";
 import { EditLocationDialog } from "@components/dialog/EditLocationDialog";
 import { ReassignDialog } from "@components/dialog/ReassignDialog";
-import { RerouteDialog } from "@components/dialog/RerouteDialog";
 import { RescheduleDialog } from "@components/dialog/RescheduleDialog";
 
 type BookingListingStatus = RouterInputs["viewer"]["bookings"]["get"]["filters"]["status"];
@@ -553,6 +552,9 @@ function BookingListItem(booking: BookingItemProps) {
     }
   };
 
+  const [showOwnerPolicy, setShowOwnerPolicy] = useState(false);
+  const [ownerCancelConfirmed, setOwnerCancelConfirmed] = useState(false);
+
   return (
     <>
       <RescheduleDialog
@@ -646,6 +648,7 @@ function BookingListItem(booking: BookingItemProps) {
       {isOwnerCancelDialogOpen && (
         <Dialog open={isOwnerCancelDialogOpen} onOpenChange={setIsOwnerCancelDialogOpen}>
           <DialogContent enableOverflow>
+            {/* Header */}
             <div className="border-b border-slate-200 px-7 pb-4 pt-7">
               <div className="flex items-center gap-3">
                 <div className="bg-subtle flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full">
@@ -657,6 +660,7 @@ function BookingListItem(booking: BookingItemProps) {
 
             {/* Body */}
             <div className="space-y-7 p-7">
+              {/* Booking summary */}
               <div className="flex flex-col gap-2 rounded-xl border border-slate-100 bg-white/95 p-5 shadow-sm">
                 <h4 className="text-lg font-medium text-slate-800">{booking.title}</h4>
                 <div className="flex flex-col gap-0.5 text-sm text-gray-600">
@@ -673,13 +677,41 @@ function BookingListItem(booking: BookingItemProps) {
                   </div>
                 </div>
               </div>
-              {/* Refund Warning */}
-              <div className="flex items-start gap-2 rounded-lg border border-yellow-200 bg-yellow-50 p-4 shadow-sm">
-                <Icon name="triangle-alert" className="mt-0.5 h-5 w-5 text-yellow-500" />
-                <div>
-                  <h3 className="text-sm font-medium text-yellow-800">{t("full_refund_processing")}</h3>
-                  <p className="mt-1 text-sm text-yellow-700">{t("owner_cancel_refund_description")}</p>
-                </div>
+
+              {/* Cancellation & Refund Policy (collapsible) */}
+              <div className="rounded-xl border border-slate-200 bg-white/95">
+                <button
+                  type="button"
+                  onClick={() => setShowOwnerPolicy((s) => !s)}
+                  className="flex w-full items-center justify-between gap-3 rounded-t-xl px-4 py-3 text-left hover:bg-slate-50"
+                  aria-expanded={showOwnerPolicy}
+                  aria-controls="appointly-owner-policy">
+                  <div className="flex items-center gap-2">
+                    <Icon name="shield-check" className="h-5 w-5 text-slate-700" />
+                    <span className="text-sm font-medium text-slate-800">Cancellation & Refund Policy</span>
+                  </div>
+                  <Icon
+                    name={showOwnerPolicy ? "chevron-up" : "chevron-down"}
+                    className="h-5 w-5 text-slate-600"
+                  />
+                </button>
+
+                {showOwnerPolicy && (
+                  <div
+                    id="appointly-owner-policy"
+                    className="space-y-3 border-t border-slate-200 px-4 py-4 text-sm text-slate-700">
+                    <ul className="list-disc space-y-2 pl-5">
+                      <li>Cancelling here will immediately cancel the current booking.</li>
+                      <li>A cancellation email will be sent to the attendee.</li>
+                      <li>A full refund will be issued to the original payment method.</li>
+                      <li>Refunds are typically processed within 5–7 working days.</li>
+                    </ul>
+                    <p className="text-[12px] text-slate-500">
+                      Tip: To offer a new time instead, use the reschedule flow so the attendee receives a
+                      reschedule link.
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Cancellation Reason */}
@@ -687,7 +719,7 @@ function BookingListItem(booking: BookingItemProps) {
                 <Label htmlFor="cancel-reason" className="font-medium text-gray-800">
                   {t("cancellation_reason")} <span className="text-red-400">*</span>
                 </Label>
-                <TextAreaField
+                <TextArea
                   id="cancel-reason"
                   name="cancelReason"
                   value={ownerCancelReason}
@@ -698,19 +730,30 @@ function BookingListItem(booking: BookingItemProps) {
                   className="w-full rounded-md border border-yellow-300 bg-white px-3 py-2 text-sm text-gray-800 shadow-sm transition-all duration-150 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-200"
                 />
               </div>
+
+              {/* Acknowledgement */}
+              <div className="flex items-start gap-2 rounded-md border border-slate-200 bg-slate-100 p-3">
+                <Checkbox
+                  id="confirm-owner-cancel"
+                  checked={ownerCancelConfirmed}
+                  onCheckedChange={(checked) => setOwnerCancelConfirmed(Boolean(checked))}
+                />
+                <Label htmlFor="confirm-owner-cancel" className="cursor-pointer text-sm text-slate-700">
+                  I understand this will cancel the booking and trigger a full refund.
+                </Label>
+              </div>
             </div>
 
             {/* Footer */}
             <DialogFooter className="flex justify-center gap-3 rounded-b-2xl border-t border-slate-200 bg-slate-50 px-7 py-4">
               <DialogClose color="secondary">{t("cancel")}</DialogClose>
               <Button
-                color="destructive"
                 onClick={handleOwnerCancel}
                 loading={ownerCancelLoading}
-                disabled={!ownerCancelReason.trim() || ownerCancelLoading}
+                disabled={!ownerCancelReason.trim() || ownerCancelLoading || !ownerCancelConfirmed}
                 className="flex h-10 min-w-[130px] items-center justify-center rounded-md text-sm font-medium"
                 style={
-                  !ownerCancelReason.trim() || ownerCancelLoading
+                  !ownerCancelReason.trim() || ownerCancelLoading || !ownerCancelConfirmed
                     ? { opacity: 0.65, cursor: "not-allowed", filter: "grayscale(0.2)" }
                     : {}
                 }>
@@ -922,54 +965,89 @@ const BookingItemBadges = ({
 }) => {
   const { t } = useLocale();
 
+  // Helpers
+  const titleCase = (val?: string | null) =>
+    (val ? String(val) : "")
+      .replace(/_/g, " ")
+      .toLowerCase()
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+
+  const refundVariant =
+    booking.appointlyRefundStatus === AppointlyRefundStatus.PROCESSED
+      ? "green"
+      : booking.appointlyRefundStatus === AppointlyRefundStatus.PENDING
+      ? "orange"
+      : "red";
+
   return (
-    <div className="hidden h-9 flex-row items-center pb-4 pl-6 sm:flex">
+    <div className="hidden h-9 flex-row items-center gap-2 pb-4 pl-6 sm:flex">
+      {/* Unconfirmed */}
       {isPending && (
-        <Badge className="ltr:mr-2 rtl:ml-2" variant="orange">
-          {t("unconfirmed")}
+        <Badge
+          className="flex items-center gap-1 rounded-full px-2.5 py-0.5 ltr:mr-0 rtl:ml-0"
+          variant="orange">
+          <Icon name="clock" className="h-3.5 w-3.5" />
+          <span className="leading-none">{t("unconfirmed")}</span>
         </Badge>
       )}
+
+      {/* Rescheduled */}
       {isRescheduled && (
         <Tooltip content={`${t("rescheduled_by")} ${booking.rescheduler}`}>
-          <Badge variant="orange" className="ltr:mr-2 rtl:ml-2">
-            {t("rescheduled")}
+          <Badge className="flex items-center gap-1 rounded-full px-2.5 py-0.5" variant="orange">
+            <Icon name="repeat" className="h-3.5 w-3.5" />
+            <span className="leading-none">{t("rescheduled")}</span>
           </Badge>
         </Tooltip>
       )}
+
+      {/* Team */}
       {booking.eventType?.team && (
-        <Badge className="ltr:mr-2 rtl:ml-2" variant="gray">
-          {booking.eventType.team.name}
+        <Badge className="flex items-center gap-1 rounded-full px-2.5 py-0.5" variant="gray">
+          {/* (optional) icon omitted to avoid unsupported names across builds */}
+          <span className="leading-none">{booking.eventType.team.name}</span>
         </Badge>
       )}
+
+      {/* Assignment reason */}
       {booking?.assignmentReason.length > 0 && (
         <AssignmentReasonTooltip assignmentReason={booking.assignmentReason[0]} />
       )}
+
+      {/* Payment status */}
       {booking.paid && !booking.payment[0] && !booking.easebuzzPayment ? (
-        <Badge className="ltr:mr-2 rtl:ml-2" variant="orange">
-          {t("error_collecting_card")}
+        <Badge className="flex items-center gap-1 rounded-full px-2.5 py-0.5" variant="orange">
+          <Icon name="credit-card" className="h-3.5 w-3.5" />
+          <span className="leading-none">{t("error_collecting_card")}</span>
         </Badge>
       ) : booking.paid && booking.appointlyRefundStatus !== AppointlyRefundStatus.PROCESSED ? (
-        <Badge className="ltr:mr-2 rtl:ml-2" variant="green" data-testid="paid_badge">
-          {/* Handle both standard Cal.com payments and Easebuzz payments */}
-          {booking.payment[0]?.paymentOption === "HOLD" ? t("card_held") : t("paid")}
+        <Badge
+          className="flex items-center gap-1 rounded-full px-2.5 py-0.5"
+          variant="green"
+          data-testid="paid_badge">
+          <Icon name="credit-card" className="h-3.5 w-3.5" />
+          <span className="leading-none">
+            {booking.payment[0]?.paymentOption === "HOLD" ? t("card_held") : t("paid")}
+          </span>
         </Badge>
       ) : null}
+
+      {/* Refund status (only when cancelled & applicable) */}
       {booking.appointlyRefundStatus &&
       booking.appointlyRefundStatus !== AppointlyRefundStatus.NOT_APPLICABLE &&
       booking.status === BookingStatus.CANCELLED ? (
         <Badge
-          className="ltr:mr-2 rtl:ml-2"
-          variant={
-            booking.appointlyRefundStatus === AppointlyRefundStatus.PROCESSED
-              ? "green"
-              : booking.appointlyRefundStatus === AppointlyRefundStatus.PENDING
-              ? "orange"
-              : "red"
-          }
+          className="flex items-center gap-1 rounded-full px-2.5 py-0.5"
+          variant={refundVariant as any}
           data-testid="refund_status_badge">
-          {t("Refund")}: {booking.appointlyRefundStatus}
+          <Icon name="credit-card" className="h-3.5 w-3.5" />
+          <span className="leading-none">
+            {t("Refund")}: {titleCase(booking.appointlyRefundStatus)}
+          </span>
         </Badge>
       ) : null}
+
+      {/* Recurring tooltip */}
       {recurringDates !== undefined && (
         <div className="text-muted -mt-1 text-sm">
           <RecurringBookingsTooltip

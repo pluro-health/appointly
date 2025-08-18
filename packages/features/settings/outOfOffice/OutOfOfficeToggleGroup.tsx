@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useCallback } from "react";
+import { useEffect, useMemo } from "react";
 
 import { useCompatSearchParams } from "@calcom/embed-core/src/useCompatSearchParams";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
@@ -9,7 +9,6 @@ import { ToggleGroup } from "@calcom/ui/components/form";
 
 export enum OutOfOfficeTab {
   MINE = "mine",
-  TEAM = "team",
 }
 
 export const OutOfOfficeToggleGroup = () => {
@@ -18,32 +17,27 @@ export const OutOfOfficeToggleGroup = () => {
   const router = useRouter();
   const pathname = usePathname();
 
-  const createQueryString = useCallback(
-    (name: string, value: string) => {
+  // Always enforce ?type=mine
+  useEffect(() => {
+    const current = searchParams?.get("type");
+    if (current !== OutOfOfficeTab.MINE) {
       const params = new URLSearchParams(searchParams ?? undefined);
-      params.set(name, value);
+      params.set("type", OutOfOfficeTab.MINE);
+      router.replace(`${pathname}?${params.toString()}`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
-      return params.toString();
-    },
-    [searchParams]
-  );
+  const selectedTab = OutOfOfficeTab.MINE;
 
-  const selectedTab = searchParams?.get("type") ?? OutOfOfficeTab.MINE;
-
-  const toggleGroupOptions = [
-    { value: OutOfOfficeTab.MINE, label: t("my_ooo") },
-    { value: OutOfOfficeTab.TEAM, label: t("team_ooo") },
-  ];
+  const toggleGroupOptions = useMemo(() => [{ value: OutOfOfficeTab.MINE, label: t("my_ooo") }], [t]);
 
   return (
     <ToggleGroup
       className="hidden md:block"
+      // Single option; value change is a no-op
       defaultValue={selectedTab}
-      onValueChange={(value) => {
-        if (!value) return;
-        const newQuery = createQueryString("type", value);
-        router.push(`${pathname}?${newQuery}`);
-      }}
+      onValueChange={() => {}}
       options={toggleGroupOptions}
     />
   );

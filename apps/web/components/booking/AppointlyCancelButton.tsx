@@ -54,7 +54,8 @@ export default function AppointlyCancelButton({
     return "Cancel (no refund available)";
   }, [cancellationInfo, isWithin24Hours]);
 
-  const buttonColor = useMemo(() => (isWithin24Hours ? "destructive" : "secondary"), [isWithin24Hours]);
+  const buttonShape: "button" | "icon" | "fab" = "button";
+  const buttonColor = isWithin24Hours ? "destructive" : "secondary";
 
   // =========================
   //  Inline Mode Rendering
@@ -125,6 +126,7 @@ export default function AppointlyCancelButton({
       {/* Cancel Button & Refund Badge */}
       <div className="flex flex-col gap-2">
         <Button
+          variant={buttonShape}
           color={buttonColor}
           onClick={() => setIsModalOpen(true)}
           className="w-full transition-all duration-150"

@@ -58,28 +58,10 @@ export class EasebuzzService {
   private webappUrl: string;
 
   constructor() {
-    console.log(" EasebuzzService constructor started");
-
     // Import here to avoid circular dependency issues
     const { EasebuzzConfigManager } = require("./easebuzz");
     this.config = new EasebuzzConfigManager();
     this.webappUrl = process.env.NEXT_PUBLIC_WEBAPP_URL || "http://localhost:3000";
-
-    console.log(" EasebuzzService initialized:", {
-      environment: this.config.getEnvironment(),
-      webappUrl: this.webappUrl,
-      isConfigured: this.config.isConfigured(),
-      hasKey: !!this.config.getMerchantKey(),
-      hasSalt: !!this.config.getSalt(),
-      keyLength: this.config.getMerchantKey()?.length || 0,
-      saltLength: this.config.getSalt()?.length || 0,
-    });
-
-    logger.info(" EasebuzzService initialized", {
-      environment: this.config.getEnvironment(),
-      webappUrl: this.webappUrl,
-      isConfigured: this.config.isConfigured(),
-    });
   }
 
   /**
@@ -136,17 +118,6 @@ export class EasebuzzService {
     udf10?: string;
     salt: string;
   }): string {
-    console.log("🔐 Starting hash generation with params:", {
-      key: params.key?.substring(0, 10) + "***",
-      txnid: params.txnid,
-      amount: params.amount,
-      productinfo: params.productinfo,
-      name: params.name,
-      email: params.email,
-      udf1: params.udf1,
-      salt: params.salt?.substring(0, 10) + "***",
-    });
-
     // EXACT OFFICIAL EASEBUZZ HASH FORMAT
     // From official kit: config.key + "|" + data.txnid + "|" + data.amount + "|" + data.productinfo + "|" + data.name + "|" + data.email +
     // "|" + data.udf1 + "|" + data.udf2 + "|" + data.udf3 + "|" + data.udf4 + "|" + data.udf5 + "|" + data.udf6 + "|" + data.udf7 + "|" + data.udf8 + "|" + data.udf9 + "|" + data.udf10;
@@ -187,22 +158,8 @@ export class EasebuzzService {
       "|" +
       params.salt;
 
-    console.log("🔐 Hash string constructed (OFFICIAL FORMAT):", hashString.substring(0, 100) + "...");
-
     // Use js-sha512 exactly like official kit: sha512.sha512(hashstring)
     const hash = sha512.sha512(hashString);
-
-    console.log("🔐 Hash generated successfully (js-sha512):", {
-      txnid: params.txnid,
-      hashLength: hash.length,
-      hashPreview: hash.substring(0, 20) + "...",
-    });
-
-    logger.info("🔐 Hash generated", {
-      txnid: params.txnid,
-      hashString: hashString.substring(0, 100) + "...", // Log partial hash string for debugging
-      hashLength: hash.length,
-    });
 
     return hash;
   }
@@ -215,12 +172,6 @@ export class EasebuzzService {
     try {
       const salt = this.config.getSalt();
       const merchantKey = this.config.getMerchantKey();
-
-      logger.info("🔐 Starting hash verification", {
-        txnid: callbackData.txnid,
-        amount: callbackData.amount,
-        status: callbackData.status,
-      });
 
       // Easebuzz reverse hash format (confirmed working format)
       // Format: salt|status|udf10|udf9|...|udf1|email|firstname|productinfo|amount|txnid|merchantkey
@@ -266,19 +217,6 @@ export class EasebuzzService {
       const receivedHash = callbackData.hash;
       const isValid = computedHash === receivedHash;
 
-      // Log verification result
-      if (isValid) {
-        logger.info("✅ Hash verification successful", {
-          txnid: callbackData.txnid,
-        });
-      } else {
-        logger.error("❌ Hash verification failed", {
-          txnid: callbackData.txnid,
-          receivedHash: receivedHash?.substring(0, 20) + "...",
-          computedHash: computedHash.substring(0, 20) + "...",
-        });
-      }
-
       return {
         isValid,
         message: isValid ? "Hash verification successful" : "Hash verification failed",
@@ -298,13 +236,6 @@ export class EasebuzzService {
   private getBaseUrl(): string {
     const env = this.config.getEnvironment();
     const baseUrl = env === "prod" ? "https://pay.easebuzz.in/" : "https://testpay.easebuzz.in/";
-
-    console.log("🌐 Getting Easebuzz base URL:", {
-      environment: env,
-      baseUrl: baseUrl,
-    });
-
-    logger.info("🌐 Using Easebuzz base URL", { environment: env, baseUrl });
     return baseUrl;
   }
 
@@ -314,7 +245,6 @@ export class EasebuzzService {
   private isValidAmount(amount: string): boolean {
     const regexp = /^\d+\.\d{1,2}$/;
     const isValid = regexp.test(amount);
-    console.log("💰 Amount validation:", { amount, isValid });
     return isValid;
   }
 
@@ -324,7 +254,6 @@ export class EasebuzzService {
   private isValidEmail(email: string): boolean {
     const regexp = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
     const isValid = regexp.test(email);
-    console.log("📧 Email validation:", { email, isValid });
     return isValid;
   }
 
@@ -337,14 +266,6 @@ export class EasebuzzService {
     // Easebuzz pattern: optional country code + 5-20 digits
     const easebuzzPattern = /^(\+\d{1,4}[-]?)?\d{5,20}$/;
     const isValid = easebuzzPattern.test(phone.trim());
-
-    console.log("📞 Phone validation:", {
-      phone: phone.substring(0, 5) + "*****",
-      isValid,
-      length: phone.length,
-      pattern: "Easebuzz: ^(\\+\\d{1,4}[-]?)?\\d{5,20}$",
-    });
-
     return isValid;
   }
 
@@ -357,27 +278,7 @@ export class EasebuzzService {
     amount?: number
   ): Promise<PaymentInitiationResult> {
     try {
-      console.log("🚀 === PAYMENT INITIATION STARTED ===");
-      console.log("🚀 Input data:", {
-        bookingId: bookingData.id,
-        bookingUid: bookingData.uid,
-        amount: amount || bookingData.amount,
-        userEmail: bookingData.userEmail,
-        userName: bookingData.userName,
-        userPhone: bookingData.userPhone,
-        centerData: centerData ? { id: centerData.id, name: centerData.name } : null,
-      });
-
-      logger.info("🚀 Starting payment initiation", {
-        bookingId: bookingData.id,
-        bookingUid: bookingData.uid,
-        amount: amount || bookingData.amount,
-        userEmail: bookingData.userEmail,
-        centerData: centerData ? { id: centerData.id, name: centerData.name } : null,
-      });
-
       // Step 1: Validate configuration
-      console.log(" Step 1: Validating Easebuzz configuration...");
       if (!this.config.isConfigured()) {
         console.error("Easebuzz not configured properly");
         logger.error("Easebuzz not configured");
@@ -387,18 +288,12 @@ export class EasebuzzService {
           message: "Configuration missing",
         };
       }
-      console.log("✅ Step 1 complete: Configuration validated");
 
       // Step 2: Prepare amounts and transaction ID
-      console.log(" Step 2: Preparing payment amounts and transaction ID...");
       const finalAmount = (amount || bookingData.amount).toFixed(2);
       const txnid = `appointly_${bookingData.id}_${Date.now()}`;
 
-      console.log("✅ Step 2 complete:", { finalAmount, txnid });
-
       // Step 3: Validate required fields
-      console.log(" Step 3: Validating required fields...");
-
       if (!bookingData.userName.trim()) {
         console.error("Step 3 failed: Name validation");
         return { success: false, error: "Mandatory Parameter name cannot be empty" };
@@ -421,10 +316,8 @@ export class EasebuzzService {
         console.error("Step 3 failed: Phone validation");
         return { success: false, error: "Phone validation failed. Please enter proper value for phone" };
       }
-      console.log("✅ Step 3 complete: All fields validated");
 
       // Step 4: Prepare form data
-      console.log(" Step 4: Preparing form data...");
       const formData: any = {
         key: this.config.getMerchantKey(),
         txnid: txnid,
@@ -450,24 +343,9 @@ export class EasebuzzService {
       // Add sub-merchant ID if available
       if (centerData?.easebuzzSubMerchantId) {
         formData.sub_merchant_id = centerData.easebuzzSubMerchantId;
-        console.log("🏢 Added sub-merchant ID:", centerData.easebuzzSubMerchantId);
       }
 
-      console.log("✅ Step 4 complete: Form data prepared:", {
-        key: formData.key?.substring(0, 10) + "***",
-        txnid: formData.txnid,
-        amount: formData.amount,
-        email: formData.email,
-        phone: formData.phone,
-        firstname: formData.firstname,
-        productinfo: formData.productinfo,
-        udf1: formData.udf1,
-        surl: formData.surl,
-        furl: formData.furl,
-      });
-
       // Step 5: Generate hash (FIXED - match official kit exactly)
-      console.log(" Step 5: Generating hash...");
       const hash = this.generateHash({
         key: formData.key,
         txnid: formData.txnid,
@@ -489,46 +367,13 @@ export class EasebuzzService {
       });
 
       formData.hash = hash;
-      console.log("✅ Step 5 complete: Hash generated and added to form data");
 
       // Step 6: Call initiateLink API
-      console.log(" Step 6: Calling Easebuzz initiateLink API...");
       const baseUrl = this.getBaseUrl();
       const initiateUrl = `${baseUrl}payment/initiateLink`;
-
-      console.log("📡 Making API call to:", initiateUrl);
-      console.log("📡 With form data keys:", Object.keys(formData));
-
-      logger.info("📡 Calling Easebuzz initiateLink API", {
-        url: initiateUrl,
-        txnid: formData.txnid,
-        amount: formData.amount,
-        email: formData.email,
-        phone: formData.phone,
-        surl: formData.surl,
-        furl: formData.furl,
-      });
-
-      console.log(" Step 6a: About to make HTTP request...");
       const response = await this.makeRequest(initiateUrl, formData);
-      console.log(" Step 6b: HTTP request completed");
-
-      console.log("📨 Raw Easebuzz response:", {
-        response: response,
-        status: response?.status,
-        data: response?.data,
-        error: response?.error,
-      });
-
-      logger.info("📨 Easebuzz initiateLink response", {
-        success: response.status === 1,
-        data: response.data,
-        error: response.error,
-        fullResponse: response,
-      });
 
       // Step 7: Validate response
-      console.log(" Step 7: Validating Easebuzz response...");
       if (response.status !== 1 || !response.data) {
         console.error("Step 7 failed: Invalid response from Easebuzz:", {
           status: response.status,
@@ -542,30 +387,10 @@ export class EasebuzzService {
           response: response,
         };
       }
-      console.log("✅ Step 7 complete: Response validated");
 
       // Step 8: Generate final payment URL
-      console.log(" Step 8: Generating final payment URL...");
       const accessKey = response.data;
       const paymentUrl = `${baseUrl}pay/${accessKey}`;
-
-      console.log("🔑 ACCESS KEY RECEIVED:", {
-        accessKey: accessKey,
-        accessKeyLength: accessKey?.length || 0,
-        accessKeyPreview: accessKey?.substring(0, 20) + "...",
-        baseUrl: baseUrl,
-        finalPaymentUrl: paymentUrl,
-      });
-
-      logger.info("✅ Payment initiation successful", {
-        txnid: formData.txnid,
-        accessKey: accessKey.substring(0, 20) + "...",
-        paymentUrl: paymentUrl,
-        baseUrl: baseUrl,
-      });
-
-      console.log("✅ Step 8 complete: Payment URL generated");
-      console.log(" === PAYMENT INITIATION COMPLETED SUCCESSFULLY ===");
 
       return {
         success: true,
@@ -603,26 +428,11 @@ export class EasebuzzService {
    */
   private async makeRequest(url: string, data: any): Promise<any> {
     try {
-      console.log("🌐 makeRequest: Starting HTTP request");
-      console.log("🌐 URL:", url);
-      console.log("🌐 Data keys:", Object.keys(data));
-
       // Convert data to URL-encoded format (as per official implementation)
       const formBody = Object.keys(data)
         .map((key) => encodeURIComponent(key) + "=" + encodeURIComponent(data[key]))
         .join("&");
 
-      console.log("🌐 Form body prepared, length:", formBody.length);
-      console.log("🌐 Form body preview:", formBody.substring(0, 200) + "...");
-
-      logger.info("🌐 Making API request", {
-        url: url,
-        method: "POST",
-        contentType: "application/x-www-form-urlencoded",
-        bodyLength: formBody.length,
-      });
-
-      console.log("🌐 About to call fetch...");
       const response = await fetch(url, {
         method: "POST",
         headers: {
@@ -630,27 +440,15 @@ export class EasebuzzService {
         },
         body: formBody,
       });
-      console.log("🌐 Fetch completed, processing response...");
 
       const responseText = await response.text();
-      console.log("🌐 Response text received, length:", responseText.length);
-      console.log("🌐 Response text preview:", responseText.substring(0, 200) + "...");
-
-      logger.info("📥 API response received", {
-        status: response.status,
-        statusText: response.statusText,
-        responseLength: responseText.length,
-        responsePreview: responseText.substring(0, 200) + "...",
-      });
 
       if (!response.ok) {
         console.error("🌐 HTTP response not OK:", response.status, response.statusText);
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      console.log("🌐 Parsing JSON response...");
       const jsonResponse = JSON.parse(responseText);
-      console.log("🌐 JSON parsed successfully:", jsonResponse);
 
       return jsonResponse;
     } catch (error) {
@@ -677,13 +475,6 @@ export class EasebuzzService {
     isValid: boolean;
   }> {
     try {
-      logger.info("📞 Processing payment callback", {
-        txnid: callbackData.txnid,
-        status: callbackData.status,
-        amount: callbackData.amount,
-        email: callbackData.email,
-      });
-
       // Verify hash first
       const verification = await this.verifyPayment(callbackData);
       if (!verification.isValid) {
@@ -713,12 +504,6 @@ export class EasebuzzService {
         default:
           status = EasebuzzPaymentStatus.FAILURE;
       }
-
-      logger.info("✅ Callback processed successfully", {
-        txnid: callbackData.txnid,
-        mappedStatus: status,
-        originalStatus: callbackData.status,
-      });
 
       return {
         status,

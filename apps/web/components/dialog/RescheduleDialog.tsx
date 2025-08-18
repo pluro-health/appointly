@@ -21,6 +21,7 @@ export const RescheduleDialog = (props: IRescheduleDialog) => {
   const utils = trpc.useUtils();
   const { isOpenDialog, setIsOpenDialog, bookingUId: bookingId } = props;
   const [rescheduleReason, setRescheduleReason] = useState("");
+  const [showPolicy, setShowPolicy] = useState(false);
 
   const { mutate: rescheduleApi, isPending } = trpc.viewer.bookings.requestReschedule.useMutation({
     async onSuccess() {
@@ -36,10 +37,11 @@ export const RescheduleDialog = (props: IRescheduleDialog) => {
   return (
     <Dialog open={isOpenDialog} onOpenChange={setIsOpenDialog}>
       <DialogContent enableOverflow>
+        {/* Header */}
         <div className="border-b border-slate-200 px-7 pb-4 pt-7">
           <div className="flex items-center gap-3">
             <div className="bg-subtle flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full">
-              <Icon name="circle-x" className="h-6 w-6" />
+              <Icon name="calendar" className="h-6 w-6" />
             </div>
             <h2 className="text-xl font-semibold tracking-tight text-slate-900">
               {t("send_reschedule_request")}
@@ -48,20 +50,50 @@ export const RescheduleDialog = (props: IRescheduleDialog) => {
         </div>
 
         <div className="space-y-7 p-7">
-          {/* Refund Warning */}
-          <div className="flex items-start gap-2 rounded-lg border border-yellow-200 bg-yellow-50 p-4 shadow-sm">
-            <Icon name="triangle-alert" className="mt-0.5 h-5 w-5 text-yellow-500" />
-            <div>
-              <h3 className="text-sm font-medium text-yellow-800">{t("full_refund_processing")}</h3>
-              <p className="mt-1 text-sm text-yellow-700">{t("reschedule_modal_description")}</p>
-            </div>
+          {/* Collapsible: Reschedule & Refund Policy */}
+          <div className="rounded-xl border border-slate-200 bg-white/95">
+            <button
+              type="button"
+              onClick={() => setShowPolicy((s) => !s)}
+              className="flex w-full items-center justify-between gap-3 rounded-t-xl px-4 py-3 text-left hover:bg-slate-50"
+              aria-expanded={showPolicy}
+              aria-controls="appointly-reschedule-policy">
+              <div className="flex items-center gap-2">
+                <Icon name="shield-check" className="h-5 w-5 text-slate-700" />
+                <span className="text-sm font-medium text-slate-800">Reschedule & Refund Policy</span>
+              </div>
+              <Icon name={showPolicy ? "chevron-up" : "chevron-down"} className="h-5 w-5 text-slate-600" />
+            </button>
+
+            {showPolicy && (
+              <div
+                id="appointly-reschedule-policy"
+                className="space-y-3 border-t border-slate-200 px-4 py-4 text-sm text-slate-700">
+                <ul className="list-disc space-y-2 pl-5">
+                  <li>The current booking will be cancelled.</li>
+                  <li>
+                    An email with a reschedule link will be sent to select a new time (subject to
+                    availability). Rescheduling must be completed via the emailed link.
+                  </li>
+                  <li>A full refund will be issued to the original payment method.</li>
+                  <li>Refunds are typically processed within 5–7 working days.</li>
+                </ul>
+                <p className="text-[12px] text-slate-500">
+                  Note: The new slot is confirmed only after the reschedule is completed using the emailed
+                  link.
+                </p>
+              </div>
+            )}
           </div>
+
+          {/* Optional reason */}
           <div className="flex flex-col gap-2">
-            <Label htmlFor="cancel-reason" className="font-medium text-gray-800">
+            <Label htmlFor="reschedule-reason" className="font-medium text-gray-800">
               {t("reason_for_reschedule_request")}
               <span className="text-subtle font-normal"> (Optional)</span>
             </Label>
             <TextArea
+              id="reschedule-reason"
               data-testid="reschedule_reason"
               name={t("reason_for_reschedule")}
               value={rescheduleReason}
@@ -78,10 +110,10 @@ export const RescheduleDialog = (props: IRescheduleDialog) => {
             {t("cancel")}
           </DialogClose>
           <Button
-            color="destructive"
+            color="primary"
             data-testid="send_request"
             disabled={isPending}
-            className="flex h-10 min-w-[130px] items-center justify-center rounded-md text-sm font-medium"
+            className="flex h-10 min-w-[160px] items-center justify-center rounded-md text-sm font-medium"
             onClick={() => {
               rescheduleApi({
                 bookingId,

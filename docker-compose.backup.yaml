@@ -1,0 +1,102 @@
+services:
+  database:
+    container_name: database
+    image: postgres:15
+    restart: always
+    volumes:
+      - ./pg-data:/var/lib/postgresql/data/
+    env_file: .env
+    networks: [appointly]
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin4
+    depends_on:
+      - database
+    restart: always
+    ports:
+      - "8888:80"
+    env_file: .env
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+    volumes:
+      - ./pgadmin-data:/var/lib/pgadmin
+    networks: [appointly]
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./redis-data:/data
+    networks: [appointly]
+
+  web:
+    container_name: web
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_WEBAPP_URL: ${NEXT_PUBLIC_WEBAPP_URL:-http://localhost:3000}
+        NEXT_PUBLIC_API_V2_URL: ${NEXT_PUBLIC_API_V2_URL:-http://localhost:3004}
+        NEXT_PUBLIC_LICENSE_CONSENT: ${NEXT_PUBLIC_LICENSE_CONSENT}
+        NEXT_PUBLIC_WEBSITE_TERMS_URL: ${NEXT_PUBLIC_WEBSITE_TERMS_URL}
+        NEXT_PUBLIC_WEBSITE_PRIVACY_POLICY_URL: ${NEXT_PUBLIC_WEBSITE_PRIVACY_POLICY_URL}
+        CALCOM_TELEMETRY_DISABLED: ${CALCOM_TELEMETRY_DISABLED:-1}
+        NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-your-secret-key}
+        CALENDSO_ENCRYPTION_KEY: ${CALENDSO_ENCRYPTION_KEY:-your-encryption-key}
+        DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-changethis}@database:5432/${POSTGRES_DB:-appointly}
+        EMAIL_SERVER_HOST: ${EMAIL_SERVER_HOST:-smtp.gmail.com}
+        EMAIL_SERVER_PORT: ${EMAIL_SERVER_PORT:-465}
+        EMAIL_SERVER_USER: ${EMAIL_SERVER_USER:-admin@pluro.in}
+        EMAIL_SERVER_PASSWORD: ${EMAIL_SERVER_PASSWORD:-hxttkwyrmmsuasyv}
+        EASEBUZZ_MERCHANT_KEY: ${EASEBUZZ_MERCHANT_KEY:-VE2SBD3VD}
+        EASEBUZZ_KEY: ${EASEBUZZ_KEY:-VE2SBD3VD}
+        EASEBUZZ_SALT: ${EASEBUZZ_SALT:-W6BVIFE4D}
+        EASEBUZZ_ENV: ${EASEBUZZ_ENV:-test}
+        EASEBUZZ_BASE_URL: ${EASEBUZZ_BASE_URL:-https://testpay.easebuzz.in}
+        EASEBUZZ_REFUND_BASE_URL: ${EASEBUZZ_REFUND_BASE_URL:-https://testdashboard.easebuzz.in/}
+        CANCELLATION_REFUND_PERCENTAGE: ${CANCELLATION_REFUND_PERCENTAGE:-80}
+        NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-BPlGhsCG0bsjb0hJaUq618Tq3yv7Shb10wrgTEaKrgU_ugW_B4eZSzDTVdvHwX-ohEsLXEdfUAnEKWEBe1vxgMA}
+        VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-3EeNLQ42bo1-OjbN1MQ7trrYH9XFhqA_qOxz6WsuHlo}
+        JWT_SECRET: ${JWT_SECRET:-fdTJiU7ocaSGf5oFsSX5Fc79KTGhLoJGg5lNg5iPsME=}
+        REDIS_URL: redis://redis:6379
+    restart: always
+    ports:
+      - "3000:3000"
+    env_file: .env
+    environment:
+      DATABASE_HOST: database
+      DATABASE_URL: postgresql://postgres:changethis@database:5432/appointly
+      DATABASE_DIRECT_URL: postgresql://postgres:changethis@database:5432/appointly
+      DATABASE_READ_URL: postgresql://postgres:changethis@database:5432/appointly
+      DATABASE_WRITE_URL: postgresql://postgres:changethis@database:5432/appointly
+      NEXTAUTH_URL: ${NEXT_PUBLIC_WEBAPP_URL:-http://localhost:3000}/api/auth
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-your-secret-key}
+      CALENDSO_ENCRYPTION_KEY: ${CALENDSO_ENCRYPTION_KEY:-your-encryption-key}
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-BPlGhsCG0bsjb0hJaUq618Tq3yv7Shb10wrgTEaKrgU_ugW_B4eZSzDTVdvHwX-ohEsLXEdfUAnEKWEBe1vxgMA}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-3EeNLQ42bo1-OjbN1MQ7trrYH9XFhqA_qOxz6WsuHlo}
+      JWT_SECRET: ${JWT_SECRET:-fdTJiU7ocaSGf5oFsSX5Fc79KTGhLoJGg5lNg5iPsME=}
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - database
+      - redis
+    networks: [appointly]
+
+volumes:
+  pg-data:
+  pgadmin-data:
+  redis-data:
+
+networks:
+  appointly:
+    name: appointly
+    driver: bridge
+    external: false
