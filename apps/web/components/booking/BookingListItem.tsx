@@ -649,21 +649,23 @@ function BookingListItem(booking: BookingItemProps) {
         <Dialog open={isOwnerCancelDialogOpen} onOpenChange={setIsOwnerCancelDialogOpen}>
           <DialogContent enableOverflow>
             {/* Header */}
-            <div className="border-b border-slate-200 px-7 pb-4 pt-7">
+            <div className="border-b border-slate-200 px-7 pb-4 pt-7 dark:border-slate-700">
               <div className="flex items-center gap-3">
                 <div className="bg-subtle flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full">
                   <Icon name="circle-x" className="h-6 w-6" />
                 </div>
-                <h2 className="text-xl font-semibold tracking-tight text-slate-900">{t("cancel_booking")}</h2>
+                <h2 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+                  {t("cancel_booking")}
+                </h2>
               </div>
             </div>
 
             {/* Body */}
             <div className="space-y-7 p-7">
               {/* Booking summary */}
-              <div className="flex flex-col gap-2 rounded-xl border border-slate-100 bg-white/95 p-5 shadow-sm">
-                <h4 className="text-lg font-medium text-slate-800">{booking.title}</h4>
-                <div className="flex flex-col gap-0.5 text-sm text-gray-600">
+              <div className="flex flex-col gap-2 rounded-xl border border-slate-100 bg-white/95 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
+                <h4 className="text-lg font-medium text-slate-800 dark:text-slate-100">{booking.title}</h4>
+                <div className="flex flex-col gap-0.5 text-sm text-slate-600 dark:text-slate-300">
                   <div className="flex items-center gap-2">
                     <Icon name="calendar" className="h-4 w-4" />
                     <span>{formatToLocalizedDate(new Date(booking.startTime), "en")}</span>
@@ -679,34 +681,36 @@ function BookingListItem(booking: BookingItemProps) {
               </div>
 
               {/* Cancellation & Refund Policy (collapsible) */}
-              <div className="rounded-xl border border-slate-200 bg-white/95">
+              <div className="rounded-xl border border-slate-200 bg-white/95 dark:border-slate-800 dark:bg-slate-900/70">
                 <button
                   type="button"
                   onClick={() => setShowOwnerPolicy((s) => !s)}
-                  className="flex w-full items-center justify-between gap-3 rounded-t-xl px-4 py-3 text-left hover:bg-slate-50"
+                  className="flex w-full items-center justify-between gap-3 rounded-t-xl px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800/60"
                   aria-expanded={showOwnerPolicy}
                   aria-controls="appointly-owner-policy">
                   <div className="flex items-center gap-2">
-                    <Icon name="shield-check" className="h-5 w-5 text-slate-700" />
-                    <span className="text-sm font-medium text-slate-800">Cancellation & Refund Policy</span>
+                    <Icon name="shield-check" className="h-5 w-5 text-slate-700 dark:text-slate-200" />
+                    <span className="text-sm font-medium text-slate-800 dark:text-slate-100">
+                      Cancellation & Refund Policy
+                    </span>
                   </div>
                   <Icon
                     name={showOwnerPolicy ? "chevron-up" : "chevron-down"}
-                    className="h-5 w-5 text-slate-600"
+                    className="h-5 w-5 text-slate-600 dark:text-slate-300"
                   />
                 </button>
 
                 {showOwnerPolicy && (
                   <div
                     id="appointly-owner-policy"
-                    className="space-y-3 border-t border-slate-200 px-4 py-4 text-sm text-slate-700">
+                    className="space-y-3 border-t border-slate-200 px-4 py-4 text-sm text-slate-700 dark:border-slate-800 dark:text-slate-200">
                     <ul className="list-disc space-y-2 pl-5">
                       <li>Cancelling here will immediately cancel the current booking.</li>
                       <li>A cancellation email will be sent to the attendee.</li>
                       <li>A full refund will be issued to the original payment method.</li>
                       <li>Refunds are typically processed within 5–7 working days.</li>
                     </ul>
-                    <p className="text-[12px] text-slate-500">
+                    <p className="text-[12px] text-slate-500 dark:text-slate-400">
                       Tip: To offer a new time instead, use the reschedule flow so the attendee receives a
                       reschedule link.
                     </p>
@@ -716,7 +720,7 @@ function BookingListItem(booking: BookingItemProps) {
 
               {/* Cancellation Reason */}
               <div className="flex flex-col gap-2">
-                <Label htmlFor="cancel-reason" className="font-medium text-gray-800">
+                <Label htmlFor="cancel-reason" className="font-medium text-slate-800 dark:text-slate-100">
                   {t("cancellation_reason")} <span className="text-red-400">*</span>
                 </Label>
                 <TextArea
@@ -727,25 +731,27 @@ function BookingListItem(booking: BookingItemProps) {
                   placeholder="Please provide a reason for cancellation..."
                   rows={3}
                   required
-                  className="w-full rounded-md border border-yellow-300 bg-white px-3 py-2 text-sm text-gray-800 shadow-sm transition-all duration-150 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-200"
+                  className="w-full rounded-md border border-yellow-300 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm transition-all duration-150 placeholder:text-slate-400 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-200 dark:border-yellow-700 dark:bg-slate-900/60 dark:text-slate-100 dark:placeholder:text-slate-400 dark:focus:border-yellow-600 dark:focus:ring-yellow-900/40"
                 />
               </div>
 
               {/* Acknowledgement */}
-              <div className="flex items-start gap-2 rounded-md border border-slate-200 bg-slate-100 p-3">
+              <div className="flex items-start gap-2 rounded-md border border-slate-200 bg-slate-100 p-3 dark:border-slate-700 dark:bg-slate-800/60">
                 <Checkbox
                   id="confirm-owner-cancel"
                   checked={ownerCancelConfirmed}
                   onCheckedChange={(checked) => setOwnerCancelConfirmed(Boolean(checked))}
                 />
-                <Label htmlFor="confirm-owner-cancel" className="cursor-pointer text-sm text-slate-700">
+                <Label
+                  htmlFor="confirm-owner-cancel"
+                  className="cursor-pointer text-sm text-slate-700 dark:text-slate-200">
                   I understand this will cancel the booking and trigger a full refund.
                 </Label>
               </div>
             </div>
 
             {/* Footer */}
-            <DialogFooter className="flex justify-center gap-3 rounded-b-2xl border-t border-slate-200 bg-slate-50 px-7 py-4">
+            <DialogFooter className="flex justify-center gap-3 rounded-b-2xl border-t border-slate-200 bg-slate-50 px-7 py-4 dark:border-slate-700 dark:bg-slate-900/40">
               <DialogClose color="secondary">{t("cancel")}</DialogClose>
               <Button
                 onClick={handleOwnerCancel}

@@ -38,12 +38,12 @@ export const RescheduleDialog = (props: IRescheduleDialog) => {
     <Dialog open={isOpenDialog} onOpenChange={setIsOpenDialog}>
       <DialogContent enableOverflow>
         {/* Header */}
-        <div className="border-b border-slate-200 px-7 pb-4 pt-7">
+        <div className="border-b border-slate-200 px-7 pb-4 pt-7 dark:border-slate-700">
           <div className="flex items-center gap-3">
             <div className="bg-subtle flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full">
               <Icon name="calendar" className="h-6 w-6" />
             </div>
-            <h2 className="text-xl font-semibold tracking-tight text-slate-900">
+            <h2 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
               {t("send_reschedule_request")}
             </h2>
           </div>
@@ -51,24 +51,29 @@ export const RescheduleDialog = (props: IRescheduleDialog) => {
 
         <div className="space-y-7 p-7">
           {/* Collapsible: Reschedule & Refund Policy */}
-          <div className="rounded-xl border border-slate-200 bg-white/95">
+          <div className="rounded-xl border border-slate-200 bg-white/95 dark:border-slate-800 dark:bg-slate-900/70">
             <button
               type="button"
               onClick={() => setShowPolicy((s) => !s)}
-              className="flex w-full items-center justify-between gap-3 rounded-t-xl px-4 py-3 text-left hover:bg-slate-50"
+              className="flex w-full items-center justify-between gap-3 rounded-t-xl px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800/60"
               aria-expanded={showPolicy}
               aria-controls="appointly-reschedule-policy">
               <div className="flex items-center gap-2">
-                <Icon name="shield-check" className="h-5 w-5 text-slate-700" />
-                <span className="text-sm font-medium text-slate-800">Reschedule & Refund Policy</span>
+                <Icon name="shield-check" className="h-5 w-5 text-slate-700 dark:text-slate-200" />
+                <span className="text-sm font-medium text-slate-800 dark:text-slate-100">
+                  Reschedule & Refund Policy
+                </span>
               </div>
-              <Icon name={showPolicy ? "chevron-up" : "chevron-down"} className="h-5 w-5 text-slate-600" />
+              <Icon
+                name={showPolicy ? "chevron-up" : "chevron-down"}
+                className="h-5 w-5 text-slate-600 dark:text-slate-300"
+              />
             </button>
 
             {showPolicy && (
               <div
                 id="appointly-reschedule-policy"
-                className="space-y-3 border-t border-slate-200 px-4 py-4 text-sm text-slate-700">
+                className="space-y-3 border-t border-slate-200 px-4 py-4 text-sm text-slate-700 dark:border-slate-800 dark:text-slate-200">
                 <ul className="list-disc space-y-2 pl-5">
                   <li>The current booking will be cancelled.</li>
                   <li>
@@ -78,7 +83,7 @@ export const RescheduleDialog = (props: IRescheduleDialog) => {
                   <li>A full refund will be issued to the original payment method.</li>
                   <li>Refunds are typically processed within 5–7 working days.</li>
                 </ul>
-                <p className="text-[12px] text-slate-500">
+                <p className="text-[12px] text-slate-500 dark:text-slate-400">
                   Note: The new slot is confirmed only after the reschedule is completed using the emailed
                   link.
                 </p>
@@ -88,7 +93,7 @@ export const RescheduleDialog = (props: IRescheduleDialog) => {
 
           {/* Optional reason */}
           <div className="flex flex-col gap-2">
-            <Label htmlFor="reschedule-reason" className="font-medium text-gray-800">
+            <Label htmlFor="reschedule-reason" className="font-medium text-slate-800 dark:text-slate-100">
               {t("reason_for_reschedule_request")}
               <span className="text-subtle font-normal"> (Optional)</span>
             </Label>
@@ -105,7 +110,7 @@ export const RescheduleDialog = (props: IRescheduleDialog) => {
           </div>
         </div>
 
-        <DialogFooter className="flex justify-center gap-3 rounded-b-2xl border-t border-slate-200 bg-slate-50 px-7 py-4">
+        <DialogFooter className="flex justify-center gap-3 rounded-b-2xl border-t border-slate-200 bg-slate-50 px-7 py-4 dark:border-slate-700 dark:bg-slate-900/40">
           <DialogClose color="secondary" onClick={() => setIsOpenDialog(false)}>
             {t("cancel")}
           </DialogClose>

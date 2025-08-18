@@ -112,20 +112,22 @@ export default function AppointlyCancellationModal({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent enableOverflow>
-        <div className="border-b border-slate-200 px-7 pb-4 pt-7">
+        <div className="border-b border-slate-200 px-7 pb-4 pt-7 dark:border-slate-700">
           <div className="flex items-center gap-3">
             <div className="bg-subtle flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full">
               <Icon name="circle-x" className="h-6 w-6" />
             </div>
-            <h2 className="text-xl font-semibold tracking-tight text-slate-900">{t("cancel_booking")}</h2>
+            <h2 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+              {t("cancel_booking")}
+            </h2>
           </div>
         </div>
 
         <div className="space-y-7 p-7">
           {/* Booking summary */}
-          <div className="flex flex-col gap-2 rounded-xl border border-slate-100 bg-white/95 p-5 shadow-sm">
-            <h4 className="text-lg font-medium text-slate-800">{booking.title}</h4>
-            <div className="flex flex-col gap-0.5 text-sm text-gray-600">
+          <div className="flex flex-col gap-2 rounded-xl border border-slate-100 bg-white/95 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
+            <h4 className="text-lg font-medium text-slate-800 dark:text-slate-100">{booking.title}</h4>
+            <div className="flex flex-col gap-0.5 text-sm text-slate-600 dark:text-slate-300">
               <div className="flex items-center gap-2">
                 <Icon name="calendar" className="h-4 w-4" />
                 <span>{formatToLocalizedDate(new Date(booking.startTime), "en")}</span>
@@ -141,10 +143,10 @@ export default function AppointlyCancellationModal({
           </div>
 
           {/* Refund summary */}
-          <div className="flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50/80 p-4">
-            <Icon name="info" className="mt-0.5 h-5 w-5 text-blue-500" />
+          <div className="flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50/80 p-4 dark:border-blue-900/50 dark:bg-blue-950/40">
+            <Icon name="info" className="mt-0.5 h-5 w-5 text-blue-600 dark:text-blue-400" />
             <div>
-              <p className="text-sm text-blue-800">{getRefundMessage()}</p>
+              <p className="text-sm text-blue-800 dark:text-blue-100">{getRefundMessage()}</p>
               {isWithin24Hours && (
                 <Badge variant="orange" className="mt-2 text-xs">
                   Within 24-hour cancellation period
@@ -153,25 +155,30 @@ export default function AppointlyCancellationModal({
             </div>
           </div>
 
-          {/* NEW: Cancellation & Refund Policy (collapsible) */}
-          <div className="rounded-xl border border-slate-200 bg-white/95">
+          {/* Cancellation & Refund Policy (collapsible) */}
+          <div className="rounded-xl border border-slate-200 bg-white/95 dark:border-slate-800 dark:bg-slate-900/70">
             <button
               type="button"
               onClick={() => setShowPolicy((s) => !s)}
-              className="flex w-full items-center justify-between gap-3 rounded-t-xl px-4 py-3 text-left hover:bg-slate-50"
+              className="flex w-full items-center justify-between gap-3 rounded-t-xl px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800/60"
               aria-expanded={showPolicy}
               aria-controls="appointly-policy">
               <div className="flex items-center gap-2">
-                <Icon name="shield-check" className="h-5 w-5 text-slate-700" />
-                <span className="text-sm font-medium text-slate-800">Cancellation & Refund Policy</span>
+                <Icon name="shield-check" className="h-5 w-5 text-slate-700 dark:text-slate-200" />
+                <span className="text-sm font-medium text-slate-800 dark:text-slate-100">
+                  Cancellation & Refund Policy
+                </span>
               </div>
-              <Icon name={showPolicy ? "chevron-up" : "chevron-down"} className="h-5 w-5 text-slate-600" />
+              <Icon
+                name={showPolicy ? "chevron-up" : "chevron-down"}
+                className="h-5 w-5 text-slate-600 dark:text-slate-300"
+              />
             </button>
 
             {showPolicy && (
               <div
                 id="appointly-policy"
-                className="space-y-3 border-t border-slate-200 px-4 py-4 text-sm text-slate-700">
+                className="space-y-3 border-t border-slate-200 px-4 py-4 text-sm text-slate-700 dark:border-slate-800 dark:text-slate-200">
                 <ul className="list-disc space-y-2 pl-5">
                   <li>
                     Cancellations made 24 hours or more before the appointment:{" "}
@@ -181,7 +188,7 @@ export default function AppointlyCancellationModal({
                 </ul>
 
                 {/* Contextual highlight for this booking */}
-                <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+                <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-800/60">
                   <div className="flex items-start gap-2">
                     <Icon name="info" className="mt-0.5 h-4 w-4" />
                     <p className="text-[13px] leading-relaxed">
@@ -204,7 +211,7 @@ export default function AppointlyCancellationModal({
                   </div>
                 </div>
 
-                <p className="text-[12px] text-slate-500">
+                <p className="text-[12px] text-slate-500 dark:text-slate-400">
                   Note: Refunds, where applicable, are typically processed back to the original payment method
                   in 5–7 business days.
                 </p>
@@ -214,7 +221,7 @@ export default function AppointlyCancellationModal({
 
           {/* Reason selector */}
           <div className="flex flex-col gap-1">
-            <Label htmlFor="reason-select" className="font-medium text-gray-800">
+            <Label htmlFor="reason-select" className="font-medium text-slate-800 dark:text-slate-100">
               Cancellation Reason <span className="text-red-400">*</span>
             </Label>
             <Select
@@ -223,24 +230,26 @@ export default function AppointlyCancellationModal({
               value={CANCELLATION_REASONS.find((r) => r.value === selectedReason) || null}
               onChange={(option) => setSelectedReason(option?.value || "")}
               placeholder="Choose a reason…"
-              className="w-full rounded-md border transition-all duration-150 focus:ring-2 focus:ring-blue-200"
+              className="w-full rounded-md border transition-all duration-150 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900/40"
             />
           </div>
 
           {/* Acknowledgement */}
-          <div className="flex items-start gap-2 rounded-md border border-slate-200 bg-slate-100 p-3">
+          <div className="flex items-start gap-2 rounded-md border border-slate-200 bg-slate-100 p-3 dark:border-slate-700 dark:bg-slate-800/60">
             <Checkbox
               id="confirm-cancel"
               checked={confirmed}
               onCheckedChange={(checked) => setConfirmed(Boolean(checked))}
             />
-            <Label htmlFor="confirm-cancel" className="cursor-pointer text-sm text-slate-700">
+            <Label
+              htmlFor="confirm-cancel"
+              className="cursor-pointer text-sm text-slate-700 dark:text-slate-200">
               I understand the refund policy and wish to cancel this appointment.
             </Label>
           </div>
         </div>
 
-        <DialogFooter className="flex justify-center gap-3 rounded-b-2xl border-t border-slate-200 bg-slate-50 px-7 py-4">
+        <DialogFooter className="flex justify-center gap-3 rounded-b-2xl border-t border-slate-200 bg-slate-50 px-7 py-4 dark:border-slate-700 dark:bg-slate-900/40">
           <Button
             color="secondary"
             onClick={onClose}
