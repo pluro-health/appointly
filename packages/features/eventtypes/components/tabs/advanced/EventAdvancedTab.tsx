@@ -30,7 +30,6 @@ import type {
 import { FormBuilder } from "@calcom/features/form-builder/FormBuilder";
 import type { fieldSchema } from "@calcom/features/form-builder/schema";
 import type { EditableSchema } from "@calcom/features/form-builder/schema";
-import { BookerLayoutSelector } from "@calcom/features/settings/BookerLayoutSelector";
 import {
   DEFAULT_LIGHT_BRAND_COLOR,
   DEFAULT_DARK_BRAND_COLOR,
@@ -580,7 +579,7 @@ export const EventAdvancedTab = ({
         showToast={showToast}
         eventType={eventType}
       />
-      {showBookerLayoutSelector && (
+      {/* {showBookerLayoutSelector && (
         <BookerLayoutSelector
           fallbackToUserSettings
           isDark={selectedThemeIsDark}
@@ -588,7 +587,7 @@ export const EventAdvancedTab = ({
           user={user}
           isUserLoading={isUserLoading}
         />
-      )}
+      )} */}
 
       <div className="border-subtle bg-muted rounded-lg border p-1">
         <div className="p-5">

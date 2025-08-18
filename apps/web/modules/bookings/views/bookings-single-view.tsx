@@ -285,14 +285,6 @@ export default function Success(props: PageProps) {
     (!!seatReferenceUid &&
       !bookingInfo.seatsReferences.some((reference) => reference.referenceUid === seatReferenceUid));
 
-  // const telemetry = useTelemetry();
-  /*  useEffect(() => {
-    if (top !== window) {
-      //page_view will be collected automatically by _middleware.ts
-      telemetry.event(telemetryEventTypes.embedView, collectPageParameters("/booking"));
-    }
-  }, [telemetry]); */
-
   useEffect(() => {
     setDate(date.tz(localStorage.getItem("timeOption.preferredTimeZone") || CURRENT_TIMEZONE));
     setIs24h(props?.userTimeFormat ? props.userTimeFormat === 24 : !!getIs24hClockFromLocalStorage());
@@ -928,29 +920,28 @@ export default function Success(props: PageProps) {
                                 )}
 
                               {canCancel && (
-                                <div className="mt-4">
-                                  <AppointlyCancelButton
-                                    booking={{
-                                      id: bookingInfo?.id || 0,
-                                      uid: bookingInfo?.uid || "",
-                                      title: bookingInfo?.title || "",
-                                      startTime: bookingInfo?.startTime
-                                        ? typeof bookingInfo.startTime === "string"
-                                          ? bookingInfo.startTime
-                                          : bookingInfo.startTime.toISOString()
-                                        : "",
-                                      endTime: bookingInfo?.endTime
-                                        ? typeof bookingInfo.endTime === "string"
-                                          ? bookingInfo.endTime
-                                          : bookingInfo.endTime.toISOString()
-                                        : "",
-                                      status: bookingInfo?.status || "PENDING",
-                                    }}
-                                    cancellationInfo={cancellationInfo}
-                                    userEmail={currentUserEmail}
-                                    isLoading={isCancellationLoading}
-                                  />
-                                </div>
+                                <AppointlyCancelButton
+                                  booking={{
+                                    id: bookingInfo?.id || 0,
+                                    uid: bookingInfo?.uid || "",
+                                    title: bookingInfo?.title || "",
+                                    startTime: bookingInfo?.startTime
+                                      ? typeof bookingInfo.startTime === "string"
+                                        ? bookingInfo.startTime
+                                        : bookingInfo.startTime.toISOString()
+                                      : "",
+                                    endTime: bookingInfo?.endTime
+                                      ? typeof bookingInfo.endTime === "string"
+                                        ? bookingInfo.endTime
+                                        : bookingInfo.endTime.toISOString()
+                                      : "",
+                                    status: bookingInfo?.status || "PENDING",
+                                  }}
+                                  cancellationInfo={cancellationInfo}
+                                  userEmail={currentUserEmail}
+                                  isLoading={isCancellationLoading}
+                                  inline
+                                />
                               )}
                             </>
                           </div>
