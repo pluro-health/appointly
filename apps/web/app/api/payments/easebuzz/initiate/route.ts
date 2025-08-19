@@ -140,7 +140,7 @@ async function handler(req: NextRequest) {
         status: "PENDING", // Important: NOT ACCEPTED
         paymentStatus: "PENDING", // Payment pending
         paid: false, // Not paid yet
-        userPrimaryEmail: responses.email || "",
+        userPrimaryEmail: eventType.owner?.email || "",
         responses: responses,
         metadata: metadata || {},
         location: responses.location?.optionValue || responses.location?.value || "",
