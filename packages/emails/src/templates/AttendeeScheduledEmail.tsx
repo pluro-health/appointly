@@ -8,10 +8,11 @@ export const AttendeeScheduledEmail = (
     attendee: Person;
   } & Partial<React.ComponentProps<typeof BaseScheduledEmail>>
 ) => {
+  const timeZone = process.env.EMAIL_TIMEZONE_OVERRIDE || props.attendee.timeZone;
   return (
     <BaseScheduledEmail
       locale={props.attendee.language.locale}
-      timeZone={props.attendee.timeZone}
+      timeZone={timeZone}
       t={props.attendee.language.translate}
       timeFormat={props.attendee?.timeFormat}
       {...props}

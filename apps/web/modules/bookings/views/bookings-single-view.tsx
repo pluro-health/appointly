@@ -81,6 +81,7 @@ const querySchema = z.object({
   noShow: stringToBoolean,
   payment: z.string().optional(),
   reason: z.string().optional(),
+  error: z.string().optional(), // Add error parameter for reschedule errors
 });
 
 const useBrandColors = ({
@@ -117,6 +118,7 @@ export default function Success(props: PageProps) {
     rating,
     payment,
     reason,
+    error,
   } = querySchema.parse(routerQuery);
 
   const attendeeTimeZone = bookingInfo?.attendees.find((attendee) => attendee.email === email)?.timeZone;
@@ -574,6 +576,35 @@ export default function Success(props: PageProps) {
                                   className="bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600">
                                   Book Appointment Again
                                 </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Reschedule Not Allowed UI */}
+                      {error === "reschedule_not_allowed" && (
+                        <div className="mt-6 rounded-lg border border-orange-200 bg-orange-50 p-4 dark:border-orange-800 dark:bg-orange-900/20">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0">
+                              <Icon name="clock" className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                            </div>
+                            <div className="ml-3">
+                              <h4 className="text-sm font-medium text-orange-800 dark:text-orange-200">
+                                Reschedule Not Allowed
+                              </h4>
+                              <div className="mt-2 text-sm text-orange-700 dark:text-orange-300">
+                                <p>
+                                  {reason
+                                    ? decodeURIComponent(reason)
+                                    : "This booking cannot be rescheduled at this time."}
+                                </p>
+                              </div>
+                              <div className="mt-2 text-sm text-orange-600 dark:text-orange-400">
+                                <p>
+                                  <strong>Appointly Policy:</strong> Bookings can only be rescheduled if they
+                                  are more than 24 hours away from the original appointment time.
+                                </p>
                               </div>
                             </div>
                           </div>

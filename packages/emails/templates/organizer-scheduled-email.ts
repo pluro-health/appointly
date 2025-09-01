@@ -105,7 +105,8 @@ ${callToAction}
   }
 
   protected getTimezone(): string {
-    return this.calEvent.organizer.timeZone;
+    const timeZone = process.env.EMAIL_TIMEZONE_OVERRIDE || (this.attendee ? this.attendee.timeZone : "UTC");
+    return timeZone;
   }
 
   protected getLocale(): string {

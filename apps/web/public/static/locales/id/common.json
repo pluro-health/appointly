@@ -156,7 +156,7 @@
   "apply_to_all_event_types": "Terapkan untuk semua, termasuk jenis acara di masa depan",
   "date_and_time": "Tanggal & Waktu",
   "email_reminder_upcoming_event_notice": "Ini adalah pengingat tentang acara mendatang Anda.",
-  "email_reminder_triggered_by_workflow": "Pengingat ini dipicu oleh Workflow di Cal.",
+  "email_reminder_triggered_by_workflow": "Pengingat ini dipicu oleh Workflow di Appointly.",
   "event_upper_case": "Acara",
   "scheduling_by": "Dijadwalkan oleh",
   "experience_review_prompt": "Bagaimana pengalaman terakhir Anda?",

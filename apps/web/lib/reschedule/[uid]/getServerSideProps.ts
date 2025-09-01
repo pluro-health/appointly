@@ -5,6 +5,8 @@ import { z } from "zod";
 
 import { getServerSession } from "@calcom/features/auth/lib/getServerSession";
 import { getFullName } from "@calcom/features/form-builder/utils";
+// Import Appointly business rules
+import { canRescheduleBooking } from "@calcom/lib/appointly-business-rules";
 import { buildEventUrlFromBooking } from "@calcom/lib/bookings/buildEventUrlFromBooking";
 import { getDefaultEvent } from "@calcom/lib/defaultEvents";
 import { getSafe } from "@calcom/lib/getSafe";
@@ -165,6 +167,22 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
     return {
       redirect: {
         destination: searchParamsString ? `${eventUrl}?${searchParamsString}` : eventUrl,
+        permanent: false,
+      },
+    };
+  }
+
+  // Check Appointly 24-hour rule
+  const appointlyRescheduleCheck = canRescheduleBooking(booking as any);
+  if (!appointlyRescheduleCheck.canReschedule) {
+    // Redirect to booking page with error message
+    const destinationUrlSearchParams = new URLSearchParams();
+    destinationUrlSearchParams.set("error", "reschedule_not_allowed");
+    destinationUrlSearchParams.set("reason", appointlyRescheduleCheck.reason || "Reschedule not allowed");
+
+    return {
+      redirect: {
+        destination: `/booking/${uid}?${destinationUrlSearchParams.toString()}`,
         permanent: false,
       },
     };

@@ -1545,6 +1545,10 @@ async function handler(
 
   //this is the actual rescheduling logic
   if (!eventType.seatsPerTimeSlot && originalRescheduledBooking?.uid) {
+    console.log("🔄 Standard Cal.com Reschedule: Starting standard reschedule flow", {
+      bookingUid: originalRescheduledBooking.uid,
+      rescheduledBy: reqBody.rescheduledBy,
+    });
     log.silly("Rescheduling booking", originalRescheduledBooking.uid);
     // cancel workflow reminders from previous rescheduled booking
     await WorkflowRepository.deleteAllWorkflowReminders(originalRescheduledBooking.workflowReminders);

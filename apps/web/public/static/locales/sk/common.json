@@ -57,7 +57,7 @@
   "apply_to_all_event_types": "Platí pre všetky, vrátane budúcich typov udalostí",
   "date_and_time": "Dátum a čas",
   "email_reminder_upcoming_event_notice": "Toto je pripomienka k vášmu pripravovanému podujatiu.",
-  "email_reminder_triggered_by_workflow": "Toto pripomenutie bolo spustené pracovným postupom v Cal.",
+  "email_reminder_triggered_by_workflow": "Toto pripomenutie bolo spustené pracovným postupom v Appointly.",
   "event_upper_case": "Udalosť",
   "scheduling_by": "Naplánované",
   "experience_review_prompt": "Aký bol váš posledný zážitok?",

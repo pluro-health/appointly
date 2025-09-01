@@ -35,15 +35,25 @@ export function canRescheduleBooking(booking: Booking): {
     return { canReschedule: false, reason: "Booking is not confirmed" };
   }
 
-  // Check if within 24-hour limit
-  if (!isActionAllowedBeforeAppointment(booking.startTime)) {
-    return { canReschedule: false, reason: "Cannot reschedule within 24 hours of appointment" };
+  // Check if within 24-hour limit from the ORIGINAL appointment start time
+  const originalStartTime = (booking as any).appointlyOriginalBookingDate || booking.startTime;
+  const now = new Date();
+  const timeDifference = originalStartTime.getTime() - now.getTime();
+  const hoursUntilAppointment = timeDifference / (1000 * 60 * 60);
+
+  console.log("24-hour rule check:", {
+    originalStartTime: originalStartTime.toISOString(),
+    now: now.toISOString(),
+    hoursUntilAppointment,
+    isAllowed: hoursUntilAppointment >= 24,
+  });
+
+  if (!isActionAllowedBeforeAppointment(originalStartTime)) {
+    return { canReschedule: false, reason: "Cannot reschedule within 24 hours of the original appointment" };
   }
 
-  // Check reschedule count limit (only once allowed)
-  if (((booking as any).appointlyRescheduleCount || 0) >= 1) {
-    return { canReschedule: false, reason: "Maximum reschedule limit reached (1 reschedule allowed)" };
-  }
+  // No limit on number of reschedules - allow unlimited reschedules
+  // as long as they are more than 24 hours from the original appointment
 
   return { canReschedule: true };
 }
@@ -227,10 +237,9 @@ export function validateRescheduleTimeSlot(
     return { isValid: false, reason: "End time must be after start time" };
   }
 
-  // Check if new appointment is at least 24 hours from now
-  if (!isActionAllowedBeforeAppointment(newStartTime)) {
-    return { isValid: false, reason: "New appointment must be at least 24 hours from now" };
-  }
+  // No 24-hour restriction on new appointment time
+  // The 24-hour restriction is only applied to the original appointment time
+  // in the canRescheduleBooking function
 
   return { isValid: true };
 }

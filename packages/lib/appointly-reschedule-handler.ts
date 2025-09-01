@@ -1,7 +1,15 @@
 import { BookingStatus } from "@prisma/client";
 import { Request } from "express";
 
+import dayjs from "@calcom/dayjs";
+import { sendRescheduledEmailsAndSMS } from "@calcom/emails";
+import { getAllCredentialsIncludeServiceAccountKey } from "@calcom/features/bookings/lib/getAllCredentialsForUsersOnEvent/getAllCredentials";
+import { addVideoCallDataToEvent } from "@calcom/features/bookings/lib/handleNewBooking/addVideoCallDataToEvent";
+import EventManager from "@calcom/lib/EventManager";
+import { CalendarEventBuilder } from "@calcom/lib/builders/CalendarEvent/builder";
+import { CalendarEventDirector } from "@calcom/lib/builders/CalendarEvent/director";
 import logger from "@calcom/lib/logger";
+import { getTranslation } from "@calcom/lib/server/i18n";
 import { prisma } from "@calcom/prisma";
 
 import {
@@ -230,25 +238,460 @@ export class AppointlyRescheduleHandler {
       userRole: "host" | "attendee" | "unauthorized";
     }
   ): Promise<{ success: boolean; message?: string; bookingUid?: string; newBookingId?: number }> {
-    try {
-      // TODO: Integrate with existing Cal.com reschedule service
-      // For now, we'll do a basic update
+    console.log("🚀 Appointly Reschedule: Starting reschedule process", {
+      bookingId: booking.id,
+      newStartTime: options.newStartTime,
+      newEndTime: options.newEndTime,
+      userRole: options.userRole,
+    });
 
+    try {
+      // Get the booking with all necessary relations
+      const bookingWithRelations = await prisma.booking.findUnique({
+        where: { id: booking.id },
+        include: {
+          attendees: true,
+          user: true,
+          eventType: true,
+          references: true,
+        },
+      });
+
+      if (!bookingWithRelations) {
+        throw new Error("Booking not found");
+      }
+
+      if (!bookingWithRelations.user) {
+        throw new Error("Booking user not found");
+      }
+
+      // Get user credentials first
+      const userCredentials = await prisma.credential.findMany({
+        where: { userId: bookingWithRelations.user.id },
+        select: {
+          id: true,
+          type: true,
+          key: true,
+          userId: true,
+          teamId: true,
+          appId: true,
+          invalid: true,
+          delegationCredentialId: true,
+          user: {
+            select: {
+              email: true,
+            },
+          },
+        },
+      });
+
+      // Get all credentials for the organizer
+      const allCredentials = await getAllCredentialsIncludeServiceAccountKey(
+        {
+          id: bookingWithRelations.user.id,
+          username: bookingWithRelations.user.username,
+          email: bookingWithRelations.user.email,
+          credentials: userCredentials,
+        },
+        null // Pass null to avoid type issues, credentials will still be fetched
+      );
+
+      // Get user's destination calendar
+      const userDestinationCalendar = await prisma.destinationCalendar.findFirst({
+        where: { userId: bookingWithRelations.user.id },
+      });
+
+      // Parse event type metadata
+      const eventTypeMetadata = bookingWithRelations.eventType?.metadata
+        ? (bookingWithRelations.eventType.metadata as any)?.apps || {}
+        : {};
+
+      // Create EventManager for proper calendar integration
+      const eventManager = new EventManager(
+        {
+          credentials: allCredentials,
+          destinationCalendar: userDestinationCalendar,
+        },
+        eventTypeMetadata
+      );
+
+      // Build calendar event using Cal.com's standard approach
+      const builder = new CalendarEventBuilder();
+      const director = new CalendarEventDirector();
+
+      // Get translations for organizer and attendees
+      const organizerT = await getTranslation(bookingWithRelations.user?.locale ?? "en", "common");
+
+      const attendeePromises = bookingWithRelations.attendees.map(async (attendee) => {
+        const tAttendee = await getTranslation(attendee.locale ?? "en", "common");
+        return {
+          email: attendee.email,
+          name: attendee.name,
+          timeZone: attendee.timeZone,
+          language: { translate: tAttendee, locale: attendee.locale ?? "en" },
+          phoneNumber: attendee.phoneNumber || undefined,
+        };
+      });
+
+      const attendeeList = await Promise.all(attendeePromises);
+
+      // Initialize the calendar event builder with proper timezone formatting
+      builder.init({
+        title: bookingWithRelations.title || "Meeting",
+        type: bookingWithRelations.eventType?.title || "Meeting",
+        startTime: dayjs(options.newStartTime)
+          .tz(bookingWithRelations.user?.timeZone || "UTC")
+          .format(),
+        endTime: dayjs(options.newEndTime)
+          .tz(bookingWithRelations.user?.timeZone || "UTC")
+          .format(),
+        attendees: attendeeList,
+        organizer: {
+          name: bookingWithRelations.user?.name || "Organizer",
+          email: bookingWithRelations.user?.email || "",
+          timeZone: bookingWithRelations.user?.timeZone || "UTC",
+          language: { translate: organizerT, locale: bookingWithRelations.user?.locale ?? "en" },
+        },
+        hideOrganizerEmail: bookingWithRelations.eventType?.hideOrganizerEmail,
+        location: bookingWithRelations.location || "",
+        description: bookingWithRelations.description || "",
+        uid: bookingWithRelations.uid,
+      });
+
+      // Set up the director for reschedule
+      director.setBuilder(builder);
+      director.setExistingBooking(bookingWithRelations);
+      if (options.reason) {
+        director.setCancellationReason(options.reason);
+      }
+
+      // Build the calendar event
+      await director.buildForRescheduleEmail();
+
+      // Add video call data from existing references
+      let calendarEvent = addVideoCallDataToEvent(bookingWithRelations.references, builder.calendarEvent);
+      calendarEvent.rescheduledBy =
+        options.userRole === "host"
+          ? bookingWithRelations.user?.email
+          : bookingWithRelations.attendees[0]?.email;
+
+      // Process location to get actual meeting URL if it's an integration
+      if (calendarEvent.location?.includes("integrations:")) {
+        // If we have video call data, use the actual meeting URL
+        if (calendarEvent.videoCallData?.url) {
+          calendarEvent.location = calendarEvent.videoCallData.url;
+        }
+        // If we have meetingUrl in references, use that
+        else {
+          const videoReference = bookingWithRelations.references.find((ref) => ref.type.includes("_video"));
+          if (videoReference?.meetingUrl) {
+            calendarEvent.location = videoReference.meetingUrl;
+          }
+        }
+      }
+
+      // Log calendar event details for debugging
+      this.log.info("Calendar event details", {
+        bookingId: booking.id,
+        startTime: calendarEvent.startTime,
+        endTime: calendarEvent.endTime,
+        organizer: calendarEvent.organizer.email,
+        attendees: calendarEvent.attendees.map((a) => a.email),
+        videoCallData: calendarEvent.videoCallData,
+        location: calendarEvent.location,
+        originalLocation: bookingWithRelations.location,
+      });
+
+      // Ensure we have the proper iCalUID for updating existing calendar events
+      if (bookingWithRelations.iCalUID) {
+        calendarEvent.iCalUID = bookingWithRelations.iCalUID;
+      }
+
+      // Use EventManager to handle the reschedule with proper calendar integration
+      console.log("🔄 Calling EventManager.reschedule...");
+      let updateManager;
+      try {
+        updateManager = await eventManager.reschedule(
+          calendarEvent,
+          bookingWithRelations.uid,
+          undefined, // newBookingId
+          false, // changedOrganizer
+          undefined, // previousHostDestinationCalendar
+          false // isBookingRequestedReschedule
+        );
+        console.log("✅ EventManager.reschedule completed successfully");
+      } catch (eventManagerError) {
+        console.error("❌ EventManager.reschedule failed:", eventManagerError);
+        this.log.error("EventManager.reschedule failed", {
+          bookingId: booking.id,
+          error: eventManagerError,
+        });
+        throw eventManagerError;
+      }
+
+      // Update calendar event with actual meeting URLs from results
+      const videoResult = updateManager.results.find(
+        (r) => r.type.includes("_video") || r.createdEvent?.url || r.updatedEvent?.url
+      );
+
+      // Check if we got a created event (new) or updated event (existing)
+      if (videoResult?.createdEvent?.url) {
+        console.log("🆕 Created new video event:", videoResult.createdEvent.url);
+        calendarEvent.location = videoResult.createdEvent.url;
+        calendarEvent.videoCallData = {
+          type: videoResult.type,
+          id: videoResult.createdEvent.id,
+          password: videoResult.createdEvent.password,
+          url: videoResult.createdEvent.url,
+        };
+      } else if (videoResult?.updatedEvent?.url) {
+        console.log("🔄 Updated existing video event:", videoResult.updatedEvent.url);
+        calendarEvent.location = videoResult.updatedEvent.url;
+        calendarEvent.videoCallData = {
+          type: videoResult.type,
+          id: videoResult.updatedEvent.id,
+          password: videoResult.updatedEvent.password,
+          url: videoResult.updatedEvent.url,
+        };
+      }
+
+      // Check calendar results
+      const calendarResults = updateManager.results.filter((r) => r.type.includes("_calendar"));
+      console.log(
+        "📅 Calendar results:",
+        calendarResults.map((r) => ({
+          type: r.type,
+          success: r.success,
+          created: !!r.createdEvent,
+          updated: !!r.updatedEvent,
+        }))
+      );
+
+      // Log calendar integration results
+      this.log.info("Calendar integration results", {
+        bookingId: booking.id,
+        resultsCount: updateManager.results.length,
+        referencesToCreate: updateManager.referencesToCreate.length,
+        iCalUID: calendarEvent.iCalUID,
+        originalReferences: bookingWithRelations.references.map((r) => ({
+          type: r.type,
+          uid: r.uid,
+          meetingUrl: r.meetingUrl,
+        })),
+        results: updateManager.results.map((r) => ({
+          type: r.type,
+          success: r.success,
+          uid: r.uid,
+          createdEvent: r.createdEvent
+            ? {
+                id: r.createdEvent.id,
+                hangoutLink: r.createdEvent.hangoutLink,
+                meetingUrl: r.createdEvent.meetingUrl,
+                url: r.createdEvent.url,
+              }
+            : null,
+          updatedEvent: r.updatedEvent
+            ? {
+                id: r.updatedEvent.id,
+                hangoutLink: r.updatedEvent.hangoutLink,
+                meetingUrl: r.updatedEvent.meetingUrl,
+                url: r.updatedEvent.url,
+              }
+            : null,
+        })),
+        updatedLocation: calendarEvent.location,
+        updatedVideoCallData: calendarEvent.videoCallData,
+      });
+
+      // Update the booking in the database
+      console.log("🔄 Updating booking in database...");
       const updatedBooking = await prisma.booking.update({
         where: { id: booking.id },
         data: {
           startTime: options.newStartTime,
           endTime: options.newEndTime,
           rescheduled: true,
-          // Set rescheduledBy based on user role
-          rescheduledBy: options.userRole === "host" ? booking.user?.email : booking.attendees[0]?.email,
+          rescheduledBy:
+            options.userRole === "host"
+              ? bookingWithRelations.user?.email
+              : bookingWithRelations.attendees[0]?.email,
         },
       });
+      console.log("✅ Booking updated successfully");
 
-      this.log.info("Booking updated successfully", {
+      // Update booking references with new calendar/video data
+      console.log("🔄 Updating booking references...");
+      if (updateManager.referencesToCreate.length > 0) {
+        console.log("📝 Deleting old references...");
+        // Delete old references
+        await prisma.bookingReference.deleteMany({
+          where: { bookingId: booking.id },
+        });
+
+        console.log("📝 Creating new references:", updateManager.referencesToCreate.length);
+        // Create new references
+        await prisma.bookingReference.createMany({
+          data: updateManager.referencesToCreate.map((ref) => ({
+            bookingId: booking.id,
+            type: ref.type,
+            uid: ref.uid,
+            meetingId: ref.meetingId,
+            meetingPassword: ref.meetingPassword,
+            meetingUrl: ref.meetingUrl,
+            externalCalendarId: ref.externalCalendarId,
+            credentialId: ref.credentialId,
+          })),
+        });
+        console.log("✅ Booking references updated successfully");
+      } else {
+        console.log("ℹ️ No new references to create");
+      }
+
+      // Update appointly-specific fields
+      console.log("🔄 Updating appointly fields...");
+      const originalBookingDate =
+        (bookingWithRelations as any).appointlyOriginalBookingDate || bookingWithRelations.startTime;
+      const currentRescheduleCount = (bookingWithRelations as any).appointlyRescheduleCount || 0;
+
+      await this.updateAppointlyFields(booking.id, {
+        newStartTime: options.newStartTime,
+        originalBookingDate: originalBookingDate,
+        rescheduleCount: currentRescheduleCount + 1,
+        reason: options.reason,
+      });
+      console.log("✅ Appointly fields updated successfully");
+
+      // Send reschedule emails
+      try {
+        // Use the calendar event that was already processed by EventManager
+        // This ensures we have the correct video call data and location
+        let emailCalendarEvent = {
+          ...calendarEvent,
+          // Ensure proper timezone formatting for email
+          startTime: dayjs(options.newStartTime)
+            .tz(bookingWithRelations.user?.timeZone || "UTC")
+            .format(),
+          endTime: dayjs(options.newEndTime)
+            .tz(bookingWithRelations.user?.timeZone || "UTC")
+            .format(),
+          // Include event type for proper email formatting
+          eventType: bookingWithRelations.eventType,
+        };
+
+        // Extract video call data from EventManager results
+        const videoResult = updateManager.results.find(
+          (r) =>
+            r.type.includes("_video") ||
+            r.createdEvent?.url ||
+            r.updatedEvent?.url ||
+            r.createdEvent?.hangoutLink ||
+            r.updatedEvent?.hangoutLink
+        );
+
+        if (videoResult) {
+          console.log("🎥 Found video result:", {
+            type: videoResult.type,
+            createdEvent: videoResult.createdEvent
+              ? {
+                  url: videoResult.createdEvent.url,
+                  hangoutLink: videoResult.createdEvent.hangoutLink,
+                  meetingUrl: videoResult.createdEvent.meetingUrl,
+                }
+              : null,
+            updatedEvent: videoResult.updatedEvent
+              ? {
+                  url: videoResult.updatedEvent.url,
+                  hangoutLink: videoResult.updatedEvent.hangoutLink,
+                  meetingUrl: videoResult.updatedEvent.meetingUrl,
+                }
+              : null,
+          });
+
+          // Use the actual meeting URL from the results
+          const meetingUrl =
+            videoResult.createdEvent?.url ||
+            videoResult.updatedEvent?.url ||
+            videoResult.createdEvent?.hangoutLink ||
+            videoResult.updatedEvent?.hangoutLink ||
+            videoResult.createdEvent?.meetingUrl ||
+            videoResult.updatedEvent?.meetingUrl;
+
+          if (meetingUrl) {
+            emailCalendarEvent.location = meetingUrl;
+            emailCalendarEvent.videoCallData = {
+              type: videoResult.type,
+              id: videoResult.createdEvent?.id || videoResult.updatedEvent?.id,
+              password: videoResult.createdEvent?.password || videoResult.updatedEvent?.password,
+              url: meetingUrl,
+            };
+            console.log("✅ Set video call data for email:", {
+              location: emailCalendarEvent.location,
+              videoCallData: emailCalendarEvent.videoCallData,
+            });
+          }
+        }
+
+        // Fallback: Ensure video call data is properly set for email
+        if (!emailCalendarEvent.videoCallData && calendarEvent.videoCallData) {
+          emailCalendarEvent.videoCallData = calendarEvent.videoCallData;
+        }
+
+        // Fallback: Ensure location has the actual meeting URL
+        if (
+          emailCalendarEvent.location === "integrations:google:meet" &&
+          calendarEvent.location !== "integrations:google:meet"
+        ) {
+          emailCalendarEvent.location = calendarEvent.location;
+        }
+
+        // Log email calendar event details for debugging
+        console.log("📧 Email Calendar Event Details:", {
+          bookingId: booking.id,
+          location: emailCalendarEvent.location,
+          videoCallData: emailCalendarEvent.videoCallData,
+          startTime: emailCalendarEvent.startTime,
+          endTime: emailCalendarEvent.endTime,
+          updateManagerResults: updateManager.results.map((r) => ({
+            type: r.type,
+            success: r.success,
+            createdEvent: r.createdEvent
+              ? {
+                  url: r.createdEvent.url,
+                  hangoutLink: r.createdEvent.hangoutLink,
+                  meetingUrl: r.createdEvent.meetingUrl,
+                }
+              : null,
+            updatedEvent: r.updatedEvent
+              ? {
+                  url: r.updatedEvent.url,
+                  hangoutLink: r.updatedEvent.hangoutLink,
+                  meetingUrl: r.updatedEvent.meetingUrl,
+                }
+              : null,
+          })),
+        });
+
+        await sendRescheduledEmailsAndSMS(emailCalendarEvent);
+        this.log.info("Reschedule emails sent successfully", { bookingId: booking.id });
+      } catch (emailError) {
+        this.log.error("Failed to send reschedule emails", {
+          bookingId: booking.id,
+          error: emailError,
+        });
+        // Don't fail the reschedule if emails fail
+      }
+
+      this.log.info("Booking rescheduled successfully with calendar integration", {
         bookingId: booking.id,
         newStartTime: options.newStartTime,
         newEndTime: options.newEndTime,
+        results: updateManager.results.length,
+      });
+
+      console.log("✅ Appointly Reschedule: Completed successfully", {
+        bookingId: booking.id,
+        bookingUid: updatedBooking.uid,
+        newBookingId: updatedBooking.id,
       });
 
       return {
@@ -325,13 +768,14 @@ export class AppointlyRescheduleHandler {
       const bookingWithAppointlyFields = booking as any;
       const eligibilityCheck = canRescheduleBooking(booking);
       const now = new Date();
-      const timeUntilAppointment = (booking.startTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+      const originalStartTime = bookingWithAppointlyFields.appointlyOriginalBookingDate || booking.startTime;
+      const timeUntilAppointment = (originalStartTime.getTime() - now.getTime()) / (1000 * 60 * 60);
 
       return {
         canReschedule: eligibilityCheck.canReschedule,
         reason: eligibilityCheck.reason,
         rescheduleCount: bookingWithAppointlyFields.appointlyRescheduleCount || 0,
-        maxReschedules: 1, // As per business rules
+        maxReschedules: -1, // -1 indicates unlimited reschedules
         originalBookingDate: bookingWithAppointlyFields.appointlyOriginalBookingDate || undefined,
         timeUntilAppointment: Math.max(0, timeUntilAppointment),
       };
@@ -345,7 +789,7 @@ export class AppointlyRescheduleHandler {
         canReschedule: false,
         reason: "Unable to retrieve booking information",
         rescheduleCount: 0,
-        maxReschedules: 1,
+        maxReschedules: -1, // -1 indicates unlimited reschedules
       };
     }
   }

@@ -3206,7 +3206,7 @@
   "user_workflows_unwhitelisted": "تمت إزالة سير عمل المستخدم من القائمة البيضاء",
   "date_and_time": "التاريخ والوقت",
   "email_reminder_upcoming_event_notice": "هذا تذكير بالحدث القادم.",
-  "email_reminder_triggered_by_workflow": "تم تشغيل هذا التذكير بواسطة سير العمل في Cal.",
+  "email_reminder_triggered_by_workflow": "تم تشغيل هذا التذكير بواسطة سير العمل في Appointly.",
   "event_upper_case": "حدث",
   "scheduling_by": "جدولة بواسطة",
   "experience_review_prompt": "كيف كانت تجربتك الأخيرة؟",

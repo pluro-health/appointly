@@ -265,15 +265,7 @@ function BookingListItem(booking: BookingItemProps) {
               booking.seatsReferences.length ? `?seatReferenceUid=${getSeatReferenceUid()}` : ""
             }`,
           },
-          {
-            id: "reschedule_request",
-            icon: "send" as const,
-            iconClassName: "rotate-45 w-[16px] -translate-x-0.5 ",
-            label: t("send_reschedule_request"),
-            onClick: () => {
-              setIsOpenRescheduleDialog(true);
-            },
-          },
+          // Removed reschedule_request action - simplified to direct reschedule only
         ]),
     ...(isEventOwner && hasEasebuzzPayment && !isCancelled && isUpcoming
       ? [

@@ -3206,7 +3206,7 @@
   "user_workflows_unwhitelisted": "Käyttäjän työnkulut poistettu sallittujen listalta",
   "date_and_time": "Päivämäärä ja aika",
   "email_reminder_upcoming_event_notice": "Tämä on muistutus tulevasta tapahtumastasi.",
-  "email_reminder_triggered_by_workflow": "Tämän muistutuksen laukaisi Cal.",
+  "email_reminder_triggered_by_workflow": "Tämän muistutuksen laukaisi Appointly.",
   "event_upper_case": "Tapahtuma",
   "scheduling_by": "Aikatauluttaja",
   "experience_review_prompt": "Minkälainen oli viimeisin kokemuksesi?",

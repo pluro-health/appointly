@@ -38,11 +38,12 @@ export const OrganizerScheduledEmail = (
     props.calEvent.schedulingType === SchedulingType.ROUND_ROBIN ||
     props.calEvent.schedulingType === SchedulingType.COLLECTIVE;
   const attendee = isTeamEvent && props.teamMember ? props.teamMember : props.attendee;
-
+  const timeZone =
+    process.env.EMAIL_TIMEZONE_OVERRIDE || props.teamMember?.timeZone || props.calEvent.organizer.timeZone;
   return (
     <BaseScheduledEmail
       locale={locale}
-      timeZone={props.teamMember?.timeZone || props.calEvent.organizer.timeZone}
+      timeZone={timeZone}
       t={t}
       subject={t(subject)}
       title={t(title)}

@@ -19,6 +19,7 @@ import { Form } from "@calcom/ui/components/form";
 
 import { useBookerStore } from "../../store";
 import { formatEventFromTime } from "../../utils/dates";
+import { useAppointlyReschedule } from "../hooks/useAppointlyReschedule";
 import { useBookerTime } from "../hooks/useBookerTime";
 import type { UseBookingFormReturnType } from "../hooks/useBookingForm";
 import type { IUseBookingErrors, IUseBookingLoadingStates } from "../hooks/useBookings";
@@ -96,6 +97,7 @@ export const BookEventForm = ({
   const [responseVercelIdHeader] = useState<string | null>(null);
   const { t, i18n } = useLocale();
   const { initiatePayment } = useEasebuzzPaymentFlow(eventType?.length);
+  const { appointlyReschedule, isRescheduling } = useAppointlyReschedule();
 
   const isPaidEvent = useMemo(() => {
     // Check for consultation fee first
@@ -154,7 +156,14 @@ export const BookEventForm = ({
           setFormValues(values);
         }}
         form={bookingForm}
-        handleSubmit={onSubmit}
+        handleSubmit={(e) => {
+          // Prevent standard form submission for Appointly reschedules
+          if (rescheduleUid && bookingData) {
+            console.log("🚫 Appointly Reschedule: Preventing standard form submission");
+            return false;
+          }
+          return onSubmit();
+        }}
         noValidate>
         <BookingFields
           isDynamicGroupBooking={!!(username && username.indexOf("+") > -1)}
@@ -255,11 +264,29 @@ export const BookEventForm = ({
           {isInstantMeeting ? (
             // Instant meeting: single Confirm button
             <Button
-              type="submit"
+              type={rescheduleUid && bookingData ? "button" : "submit"}
               color="primary"
               loading={loadingStates.creatingInstantBooking}
               onClick={() => {
-                if (isPaidEvent) {
+                if (rescheduleUid && bookingData) {
+                  // ✅ Appointly reschedule → use custom handler
+                  const formValues = bookingForm.getValues();
+                  const rescheduleReason = (formValues.responses as any)?.rescheduleReason || "";
+
+                  // Get attendee email from booking data for unauthenticated reschedules
+                  const attendeeEmail = bookingData.attendees?.[0]?.email;
+
+                  appointlyReschedule({
+                    bookingId: parseInt(bookingData.id.toString()),
+                    newStartTime: timeslot!,
+                    newEndTime: new Date(
+                      new Date(timeslot!).getTime() + (eventType?.length || 30) * 60000
+                    ).toISOString(),
+                    timeZone: timezone,
+                    reason: rescheduleReason,
+                    attendeeEmail, // Pass attendee email for authentication
+                  });
+                } else if (isPaidEvent) {
                   // ✅ Paid instant meeting → trigger payment
                   initiatePayment(eventId || 0, bookingForm);
                 } else {
@@ -267,7 +294,7 @@ export const BookEventForm = ({
                   onSubmit();
                 }
               }}>
-              {t("confirm")}
+              {rescheduleUid && bookingData ? t("reschedule") : t("confirm")}
             </Button>
           ) : (
             <>
@@ -293,7 +320,8 @@ export const BookEventForm = ({
                 loading={
                   loadingStates.creatingBooking ||
                   loadingStates.creatingRecurringBooking ||
-                  isVerificationCodeSending
+                  isVerificationCodeSending ||
+                  isRescheduling
                 }
                 className={classNames?.confirmButton}
                 onClick={() => {
@@ -302,8 +330,26 @@ export const BookEventForm = ({
                       initiatePayment(eventId || 0, bookingForm);
                     }
                     // ✅ Paid event → trigger payment gateway
+                  } else if (rescheduleUid && bookingData) {
+                    // ✅ Appointly reschedule → use custom handler
+                    const formValues = bookingForm.getValues();
+                    const rescheduleReason = (formValues.responses as any)?.rescheduleReason || "";
+
+                    // Get attendee email from booking data for unauthenticated reschedules
+                    const attendeeEmail = bookingData.attendees?.[0]?.email;
+
+                    appointlyReschedule({
+                      bookingId: parseInt(bookingData.id.toString()),
+                      newStartTime: timeslot!,
+                      newEndTime: new Date(
+                        new Date(timeslot!).getTime() + (eventType?.length || 30) * 60000
+                      ).toISOString(),
+                      timeZone: timezone,
+                      reason: rescheduleReason,
+                      attendeeEmail, // Pass attendee email for authentication
+                    });
                   } else {
-                    // ✅ Free or reschedule → directly confirm
+                    // ✅ Free booking → directly confirm
                     onSubmit();
                   }
                 }}
