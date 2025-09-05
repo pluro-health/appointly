@@ -23,13 +23,12 @@ export const WEBAPP_URL_FOR_OAUTH = IS_PRODUCTION || IS_DEV ? WEBAPP_URL : "http
 
 /** @deprecated use `WEBAPP_URL` */
 export const BASE_URL = WEBAPP_URL;
-export const WEBSITE_URL = process.env.NEXT_PUBLIC_WEBSITE_URL || "https://appointly.com";
-export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Appointly";
-export const SUPPORT_MAIL_ADDRESS =
-  process.env.NEXT_PUBLIC_SUPPORT_MAIL_ADDRESS || "support@lifewayhealth.in";
-export const COMPANY_NAME = process.env.NEXT_PUBLIC_COMPANY_NAME || "Lifeway Health";
-export const SENDER_ID = process.env.NEXT_PUBLIC_SENDER_ID || "LifewayHealth";
-export const SENDER_NAME = process.env.NEXT_PUBLIC_SENDGRID_SENDER_NAME || "Lifeway Health";
+export const WEBSITE_URL = process.env.NEXT_PUBLIC_WEBSITE_URL || "https://appointment.pluro.in";
+export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Appointment | Pluro";
+export const SUPPORT_MAIL_ADDRESS = process.env.NEXT_PUBLIC_SUPPORT_MAIL_ADDRESS || "support@pluro.in";
+export const COMPANY_NAME = process.env.NEXT_PUBLIC_COMPANY_NAME || "Pluro Fertility and IVF";
+export const SENDER_ID = process.env.NEXT_PUBLIC_SENDER_ID || "Pluro";
+export const SENDER_NAME = process.env.NEXT_PUBLIC_SENDGRID_SENDER_NAME || "Pluro Fertility and IVF";
 export const EMAIL_FROM_NAME = process.env.EMAIL_FROM_NAME || APP_NAME;
 
 // This is the URL from which all Cal Links and their assets are served.
@@ -87,8 +86,8 @@ export const PUBLIC_QUICK_AVAILABILITY_ROLLOUT =
 
 /** @deprecated use `WEBAPP_URL` */
 export const NEXT_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_WEBAPP_URL || `https://${process.env.VERCEL_URL}`;
-export const LOGO = "/calcom-logo-white-word.svg";
-export const LOGO_ICON = "/cal-com-icon-white.svg";
+export const LOGO = "/calcom-logo-white-word.png";
+export const LOGO_ICON = "/cal-com-icon-white.png";
 export const AVATAR_FALLBACK = "/avatar.svg";
 export const FAVICON_16 = "/favicon-16x16.png";
 export const FAVICON_32 = "/favicon-32x32.png";
@@ -182,9 +181,8 @@ export const ORG_MINIMUM_PUBLISHED_TEAMS_SELF_SERVE_HELPER_DIALOGUE = 2;
 
 export const CALCOM_PRIVATE_API_ROUTE = process.env.CALCOM_PRIVATE_API_ROUTE || "https://goblin.cal.com";
 export const WEBSITE_PRIVACY_POLICY_URL =
-  process.env.NEXT_PUBLIC_WEBSITE_PRIVACY_POLICY_URL || "https://lifewayhealth.in/privacy";
-export const WEBSITE_TERMS_URL =
-  process.env.NEXT_PUBLIC_WEBSITE_TERMS_URL || "https://lifewayhealth.in/terms";
+  process.env.NEXT_PUBLIC_WEBSITE_PRIVACY_POLICY_URL || "https://pluro.in/privacy";
+export const WEBSITE_TERMS_URL = process.env.NEXT_PUBLIC_WEBSITE_TERMS_URL || "https://pluro.in/terms";
 export const LINGO_DOT_DEV_API_KEY = process.env.LINGO_DOT_DEV_API_KEY;
 
 /**

@@ -17,19 +17,9 @@ export function Logo({
     <h3 className={classNames("logo", inline && "inline", className)}>
       <strong>
         {icon ? (
-          <img
-            className="mx-auto w-9 dark:invert"
-            alt="Appointly"
-            title="Appointly"
-            src={`${src}?type=icon`}
-          />
+          <img alt="Pluro" title="Pluro" src={`${src}?type=icon`} />
         ) : (
-          <img
-            className={classNames(small ? "h-4 w-auto" : "h-5 w-auto", "dark:invert")}
-            alt="Appointly"
-            title="Appointly"
-            src={src}
-          />
+          <img style={{ height: "36px" }} alt="Pluro" title="Pluro" src={src} />
         )}
       </strong>
     </h3>
