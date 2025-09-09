@@ -15,4 +15,4 @@ else
 fi
 
 echo "Starting Appointly application..."
-yarn start
+cd /appointly/apps/web && yarn start
