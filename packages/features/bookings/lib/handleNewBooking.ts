@@ -2366,6 +2366,91 @@ async function handler(
     paymentRequired: false,
   };
 
+  // HMS Integration
+  // ---------------------------------------------------------------------------
+  try {
+    let hmsCenterId = null;
+    if (organizerUser) {
+      const center = (organizerUser as any).center;
+      hmsCenterId = center.hmsCenterId;
+    }
+
+    if (hmsCenterId) {
+      const organizerMetadata = organizerUser?.metadata as Record<string, any> | undefined;
+      const hmsConsultantId = organizerMetadata?.hms_consultant_id;
+
+      const durationMin =
+        (new Date(booking.endTime).getTime() - new Date(booking.startTime).getTime()) / 60000;
+      const appointmentAt = new Date(booking.startTime).toISOString();
+
+      const meetingUrl = metadata?.videoCallUrl || videoCallUrl;
+      const consultationMode = meetingUrl ? "online" : "physical";
+
+      const googleCalendarRef = referencesToCreate?.find((ref) => ref.type === "google_calendar")?.uid;
+
+      const payload = {
+        centre_id: Number(hmsCenterId),
+        consultant_email: organizerUser?.email,
+        guest_first_name: reqBody.responses.first_name,
+        guest_last_name: reqBody.responses.last_name,
+        guest_email: reqBody.responses.email,
+        guest_country_code: "IN", // TODO: Extract from phone number if possible
+        guest_phone: reqBody.responses.attendeePhoneNumber,
+        appointment_at: appointmentAt,
+        duration_min: durationMin,
+        source: "web",
+        consultation_mode: consultationMode,
+        purpose: reqBody.responses.purpose,
+        service: reqBody.responses.service,
+        reason: reqBody.responses.notes,
+        notes: null,
+        calendar_event_ref: googleCalendarRef || undefined,
+        meeting_url: meetingUrl || undefined,
+      };
+
+      const hmsApiBaseUrl = process.env.HMS_API_URL;
+      const hmsApiKey = process.env.HMS_API_KEY;
+
+      if (hmsApiBaseUrl && hmsCenterId) {
+        // Construct the dynamic URL
+        const hmsApiUrl = `${hmsApiBaseUrl.replace(/\/$/, "")}/api/v1/centres/${hmsCenterId}/appointments`;
+
+        loggerWithEventDetails.info("Syncing booking to HMS", safeStringify(payload));
+
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+        if (hmsApiKey) {
+          headers["x-api-key"] = hmsApiKey;
+        }
+
+        try {
+          const response = await fetch(hmsApiUrl, {
+            method: "POST",
+            headers,
+            body: JSON.stringify(payload),
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            loggerWithEventDetails.error(
+              `HMS API Error: ${response.status} ${response.statusText}`,
+              errorText
+            );
+            throw new Error("Failed to sync appointment with HMS.");
+          }
+        } catch (fetchError) {
+          throw fetchError;
+        }
+      } else {
+      }
+    } else {
+    }
+  } catch (error) {
+    loggerWithEventDetails.error("Error in HMS Integration", JSON.stringify(error));
+    throw new HttpError({ statusCode: 502, message: "Failed to sync with Hospital Management System" });
+  }
+
   return {
     ...bookingResponse,
     ...luckyUserResponse,

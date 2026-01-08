@@ -26,6 +26,7 @@ interface Center {
   deletedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
+  hmsCenterId: string | null;
   _count: {
     users: number;
     easebuzzPayments: number;
@@ -38,6 +39,7 @@ interface CenterFormData {
   phone: string;
   email: string;
   easebuzzSubMerchantId: string;
+  hmsCenterId: string;
   isActive: boolean;
 }
 
@@ -57,6 +59,7 @@ export function CenterManagementView() {
     phone: "",
     email: "",
     easebuzzSubMerchantId: "",
+    hmsCenterId: "",
     isActive: true,
   });
 
@@ -122,6 +125,7 @@ export function CenterManagementView() {
       phone: "",
       email: "",
       easebuzzSubMerchantId: "",
+      hmsCenterId: "",
       isActive: true,
     });
   };
@@ -129,6 +133,10 @@ export function CenterManagementView() {
   const handleCreateCenter = async () => {
     if (!formData.name.trim()) {
       showToast("Please enter a center name", "error");
+      return;
+    }
+    if (!formData.hmsCenterId.trim()) {
+      showToast("Please enter HMS Center ID", "error");
       return;
     }
 
@@ -140,6 +148,7 @@ export function CenterManagementView() {
         phone: formData.phone.trim() || undefined,
         email: formData.email.trim() || undefined,
         easebuzzSubMerchantId: formData.easebuzzSubMerchantId.trim() || undefined,
+        hmsCenterId: formData.hmsCenterId.trim(),
         isActive: formData.isActive,
       });
     } finally {
@@ -162,6 +171,7 @@ export function CenterManagementView() {
         phone: formData.phone.trim() || undefined,
         email: formData.email.trim() || undefined,
         easebuzzSubMerchantId: formData.easebuzzSubMerchantId.trim() || undefined,
+        hmsCenterId: formData.hmsCenterId.trim(),
         isActive: formData.isActive,
       });
     } finally {
@@ -177,6 +187,7 @@ export function CenterManagementView() {
       phone: center.phone || "",
       email: center.email || "",
       easebuzzSubMerchantId: center.easebuzzSubMerchantId || "",
+      hmsCenterId: center.hmsCenterId || "",
       isActive: center.isActive,
     });
     setIsEditDialogOpen(true);
@@ -362,6 +373,13 @@ export function CenterManagementView() {
               />
             </div>
             <TextField
+              label="HMS Center ID"
+              placeholder="Enter HMS Center ID"
+              value={formData.hmsCenterId}
+              onChange={(e) => setFormData({ ...formData, hmsCenterId: e.target.value })}
+              required
+            />
+            <TextField
               label="Easebuzz Sub-Merchant ID"
               placeholder="Enter sub-merchant ID"
               value={formData.easebuzzSubMerchantId}
@@ -418,6 +436,12 @@ export function CenterManagementView() {
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               />
             </div>
+            <TextField
+              label="HMS Center ID"
+              placeholder="Enter HMS Center ID"
+              value={formData.hmsCenterId}
+              onChange={(e) => setFormData({ ...formData, hmsCenterId: e.target.value })}
+            />
             <TextField
               label="Easebuzz Sub-Merchant ID"
               placeholder="Enter sub-merchant ID"

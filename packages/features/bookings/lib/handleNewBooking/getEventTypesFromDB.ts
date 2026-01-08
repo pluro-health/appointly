@@ -33,6 +33,12 @@ export const getEventTypesFromDB = async (eventTypeId: number) => {
               select: credentialForCalendarServiceSelect,
             },
             ...userSelect.select,
+            center: {
+              select: {
+                id: true,
+                hmsCenterId: true,
+              },
+            },
           },
         },
         slug: true,
