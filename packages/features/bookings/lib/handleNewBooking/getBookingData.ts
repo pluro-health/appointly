@@ -68,7 +68,10 @@ const _getBookingData = async <T extends z.ZodType>({
   // Ensure appointment_source is always set to web for API consistency
   const finalResponses = {
     ...calEventResponses,
-    appointment_source: "web",
+    appointment_source: {
+      label: "Appointment Source",
+      value: "web",
+    },
   };
 
   return {
