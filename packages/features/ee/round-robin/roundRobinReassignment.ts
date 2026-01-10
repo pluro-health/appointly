@@ -167,7 +167,7 @@ export const roundRobinReassignment = async ({
     attendees: booking.attendees,
     organizer: organizer,
     previousHost: previousRRHost || null,
-    reassignedHost: reassignedRRHost,
+    reassignedHost: { ...reassignedRRHost, center: reassignedRRHost.center || null },
   });
 
   const attendeePromises = [];

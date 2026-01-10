@@ -13,6 +13,8 @@ type User = Omit<Prisma.UserGetPayload<typeof userSelect>, "selectedCalendars"> 
   allSelectedCalendars: SelectedCalendar[];
   userLevelSelectedCalendars: SelectedCalendar[];
   center: { id: number; hmsCenterId: string | null } | null;
+  organizationId: number | null;
+  profile: { organizationId: number | null } | null;
 };
 
 type UsernameSlugLinkProps = {
@@ -57,6 +59,8 @@ const user: User & { credentials: CredentialPayload[] } = {
   travelSchedules: [],
   locked: false,
   center: null,
+  organizationId: null,
+  profile: null,
 };
 
 const customInputs: CustomInputSchema[] = [];

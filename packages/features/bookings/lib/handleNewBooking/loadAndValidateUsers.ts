@@ -125,8 +125,7 @@ const _loadAndValidateUsers = async ({
     }
     users.push({
       ...withSelectedCalendars(eventTypeUser),
-      organizationId: null,
-      profile: null,
+      center: null,
     });
   }
 

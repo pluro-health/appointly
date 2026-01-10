@@ -915,15 +915,21 @@ async function handler(
               );
             }
             // if no error, then lucky user is available for the next slots
-            luckyUsers.push(newLuckyUser);
+            luckyUsers.push({
+              ...newLuckyUser,
+              center: newLuckyUser.center ?? null,
+            } as (typeof users)[number]);
           } catch {
-            notAvailableLuckyUsers.push(newLuckyUser);
+            notAvailableLuckyUsers.push({
+              ...newLuckyUser,
+              center: newLuckyUser.center ?? null,
+            } as (typeof users)[number]);
             loggerWithEventDetails.info(
               `Round robin host ${newLuckyUser.name} not available for first two slots. Trying to find another host.`
             );
           }
         } else {
-          luckyUsers.push(newLuckyUser);
+          luckyUsers.push({ ...newLuckyUser, center: newLuckyUser.center ?? null } as (typeof users)[number]);
         }
       }
 
@@ -938,7 +944,10 @@ async function handler(
       }
 
       // Pushing fixed user before the luckyUser guarantees the (first) fixed user as the organizer.
-      users = [...fixedUserPool, ...luckyUsers];
+      users = [
+        ...fixedUserPool.map((u) => ({ ...u, center: u.center ?? null } as (typeof users)[number])),
+        ...luckyUsers,
+      ];
       luckyUserResponse = { luckyUsers: luckyUsers.map((u) => u.id) };
       troubleshooterData = {
         ...troubleshooterData,
@@ -955,7 +964,12 @@ async function handler(
         ? eventTypeWithUsers.users.filter((user) => luckyUsers.find((luckyUserId) => luckyUserId === user.id))
         : [];
       const fixedHosts = eventTypeWithUsers.users.filter((user: IsFixedAwareUser) => user.isFixed);
-      users = [...fixedHosts, ...luckyUsersFromFirstBooking];
+      users = [
+        ...fixedHosts.map((u) => ({ ...u, center: u.center ?? null } as (typeof users)[number])),
+        ...luckyUsersFromFirstBooking.map(
+          (u) => ({ ...u, center: u.center ?? null } as (typeof users)[number])
+        ),
+      ];
       troubleshooterData = {
         ...troubleshooterData,
         luckyUsersFromFirstBooking: luckyUsersFromFirstBooking.map((u) => u.id),

@@ -209,12 +209,16 @@ export const getEventTypesFromDB = async (eventTypeId: number) => {
       user: {
         ...withSelectedCalendars(host.user),
         center: host.user.center,
+        // organizationId: null,
+        // profile: null,
       },
     }));
 
     const usersWithSelectedCalendars = users.map((user) => ({
       ...withSelectedCalendars(user),
       center: user.center,
+      // organizationId: null,
+      // profile: null,
     }));
 
     return {
