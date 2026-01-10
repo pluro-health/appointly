@@ -12,6 +12,7 @@ import type { CredentialPayload } from "@calcom/types/Credential";
 type User = Omit<Prisma.UserGetPayload<typeof userSelect>, "selectedCalendars"> & {
   allSelectedCalendars: SelectedCalendar[];
   userLevelSelectedCalendars: SelectedCalendar[];
+  center: { id: number; hmsCenterId: string | null } | null;
 };
 
 type UsernameSlugLinkProps = {
@@ -55,6 +56,7 @@ const user: User & { credentials: CredentialPayload[] } = {
   timeFormat: 12,
   travelSchedules: [],
   locked: false,
+  center: null,
 };
 
 const customInputs: CustomInputSchema[] = [];

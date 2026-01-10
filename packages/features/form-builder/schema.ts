@@ -260,6 +260,8 @@ export const fieldSchema = baseFieldSchema.merge(
           editUrl: z.string().optional(),
           // Mark if a field is required by this source or not. This allows us to set `field.required` based on all the sources' fieldRequired value
           fieldRequired: z.boolean().optional(),
+          // Use the same schema for options as in the base field schema
+          options: z.array(z.object({ label: z.string(), value: z.string() })).optional(),
         })
       )
       .optional(),

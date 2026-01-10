@@ -203,7 +203,10 @@ export const getEventTypesFromDB = async (eventTypeId: number) => {
       user: withSelectedCalendars(host.user),
     }));
 
-    const usersWithSelectedCalendars = users.map((user) => withSelectedCalendars(user));
+    const usersWithSelectedCalendars = users.map((user) => ({
+      ...withSelectedCalendars(user),
+      center: user.center,
+    }));
 
     return {
       ...restEventType,
