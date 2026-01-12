@@ -2431,7 +2431,7 @@ async function handler(
 
       if (hmsApiBaseUrl && hmsCenterId) {
         // Construct the dynamic URL
-        const hmsApiUrl = `${hmsApiBaseUrl.replace(/\/$/, "")}/api/v1/centres/${hmsCenterId}/appointments`;
+        const hmsApiUrl = `${hmsApiBaseUrl.replace(/\/$/, "")}/centres/${hmsCenterId}/appointments`;
 
         loggerWithEventDetails.info("Syncing booking to HMS", safeStringify(payload));
 
@@ -2439,7 +2439,7 @@ async function handler(
           "Content-Type": "application/json",
         };
         if (hmsApiKey) {
-          headers["x-api-key"] = hmsApiKey;
+          headers["X-Service-Key"] = hmsApiKey;
         }
 
         try {
