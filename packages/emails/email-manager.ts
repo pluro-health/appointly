@@ -100,7 +100,15 @@ const eventTypeDisableAttendeeEmail = (metadata?: EventTypeMetadata) => {
 };
 
 const eventTypeDisableHostEmail = (metadata?: EventTypeMetadata) => {
-  return !!metadata?.disableStandardEmails?.all?.host;
+  // CUSTOM: Disable host emails by default for all bookings
+  // Allow per-event override via metadata: set disableStandardEmails.all.host = false to enable
+  if (metadata?.disableStandardEmails?.all?.host !== undefined) {
+    // If metadata explicitly sets it, respect that value
+    return metadata.disableStandardEmails.all.host;
+  }
+
+  // Default: Disable all host emails
+  return true;
 };
 
 const _sendScheduledEmailsAndSMS = async (
