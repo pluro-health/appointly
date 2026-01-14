@@ -1,4 +1,5 @@
 import type { DestinationCalendar, User } from "@prisma/client";
+import { parsePhoneNumberWithError, CountryCode } from "libphonenumber-js";
 // eslint-disable-next-line no-restricted-imports
 import { cloneDeep } from "lodash";
 import short, { uuid } from "short-uuid";
@@ -2481,14 +2482,34 @@ async function syncBookingToHMS({
     const consultationMode = meetingUrl ? "online" : "physical";
     const googleCalendarRef = referencesToCreate?.find((ref: any) => ref.type === "google_calendar")?.uid;
 
+    let guestPhone = reqBody.responses.attendeePhoneNumber || "";
+    let guestCountryCode: CountryCode = "IN";
+
+    if (guestPhone) {
+      try {
+        const parsedPhone = parsePhoneNumberWithError(guestPhone, {
+          defaultCountry: guestCountryCode,
+        });
+
+        if (parsedPhone) {
+          guestPhone = parsedPhone.nationalNumber;
+          if (parsedPhone.country) {
+            guestCountryCode = parsedPhone.country;
+          }
+        }
+      } catch (error) {
+        loggerWithEventDetails.warn("Failed to parse phone number for HMS", { phone: guestPhone, error });
+      }
+    }
+
     const payload = {
       centre_id: Number(hmsCenterId),
       consultant_email: organizerUser.email,
       guest_first_name: reqBody.responses.first_name,
       guest_last_name: reqBody.responses.last_name,
       guest_email: reqBody.responses.email,
-      guest_country_code: "IN",
-      guest_phone: reqBody.responses.attendeePhoneNumber,
+      guest_country_code: guestCountryCode,
+      guest_phone: guestPhone,
       appointment_at: appointmentAt,
       duration_min: durationMin,
       source: "web",
