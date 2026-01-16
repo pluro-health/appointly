@@ -7,6 +7,7 @@ export const ZCreateCenterSchema = z.object({
   email: z.string().email("Invalid email format").optional().or(z.literal("")),
   easebuzzSubMerchantId: z.string().optional(),
   isActive: z.boolean().default(true),
+  hmsCenterId: z.string().min(1, "HMS Center ID is required"),
 });
 
 export const ZUpdateCenterSchema = z.object({
@@ -17,6 +18,7 @@ export const ZUpdateCenterSchema = z.object({
   email: z.string().email("Invalid email format").optional().or(z.literal("")),
   easebuzzSubMerchantId: z.string().optional(),
   isActive: z.boolean().optional(),
+  hmsCenterId: z.string().min(1, "HMS Center ID is required").optional(),
 });
 
 export const ZDeleteCenterSchema = z.object({

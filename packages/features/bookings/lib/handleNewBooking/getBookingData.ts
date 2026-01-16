@@ -65,9 +65,21 @@ const _getBookingData = async <T extends z.ZodType>({
       bookingFields: eventType.bookingFields,
       responses,
     });
+  // Ensure appointment_source is always set to web for API consistency
+  const finalResponses = {
+    ...calEventResponses,
+    appointment_source: {
+      label: "Appointment Source",
+      value: "web",
+    },
+  };
+
   return {
     ...parsedBody,
-    name: responses.name,
+    name:
+      responses.first_name && responses.last_name
+        ? `${responses.first_name} ${responses.last_name}`
+        : responses.first_name || responses.name || "",
     email: responses.email,
     attendeePhoneNumber: responses.attendeePhoneNumber,
     guests: responses.guests ? responses.guests : [],
@@ -76,7 +88,7 @@ const _getBookingData = async <T extends z.ZodType>({
     notes: responses.notes || "",
     calEventUserFieldsResponses,
     rescheduleReason: responses.rescheduleReason,
-    calEventResponses,
+    calEventResponses: finalResponses,
     // So TS doesn't complain about unknown properties
     customInputs: undefined,
   };

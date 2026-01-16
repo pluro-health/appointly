@@ -2486,6 +2486,7 @@ model Center {
   deletedAt             DateTime?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
+  hmsCenterId           String?   @unique
 
   // Relations
   users            User[]
@@ -2494,6 +2495,7 @@ model Center {
 
   @@index([easebuzzSubMerchantId])
   @@index([isActive])
+  @@index([hmsCenterId])
 }
 
 enum EasebuzzPaymentStatus {

@@ -33,6 +33,12 @@ export const getEventTypesFromDB = async (eventTypeId: number) => {
               select: credentialForCalendarServiceSelect,
             },
             ...userSelect.select,
+            center: {
+              select: {
+                id: true,
+                hmsCenterId: true,
+              },
+            },
           },
         },
         slug: true,
@@ -145,6 +151,12 @@ export const getEventTypesFromDB = async (eventTypeId: number) => {
                   select: credentialForCalendarServiceSelect,
                 },
                 ...userSelect.select,
+                center: {
+                  select: {
+                    id: true,
+                    hmsCenterId: true,
+                  },
+                },
               },
             },
             schedule: {
@@ -194,10 +206,20 @@ export const getEventTypesFromDB = async (eventTypeId: number) => {
 
     const hostsWithSelectedCalendars = hosts.map((host) => ({
       ...host,
-      user: withSelectedCalendars(host.user),
+      user: {
+        ...withSelectedCalendars(host.user),
+        center: host.user.center,
+        // organizationId: null,
+        // profile: null,
+      },
     }));
 
-    const usersWithSelectedCalendars = users.map((user) => withSelectedCalendars(user));
+    const usersWithSelectedCalendars = users.map((user) => ({
+      ...withSelectedCalendars(user),
+      center: user.center,
+      // organizationId: null,
+      // profile: null,
+    }));
 
     return {
       ...restEventType,

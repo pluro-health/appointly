@@ -1,4 +1,5 @@
 import type { DestinationCalendar, User } from "@prisma/client";
+import { parsePhoneNumberWithError, CountryCode } from "libphonenumber-js";
 // eslint-disable-next-line no-restricted-imports
 import { cloneDeep } from "lodash";
 import short, { uuid } from "short-uuid";
@@ -27,7 +28,6 @@ import getICalUID from "@calcom/emails/lib/getICalUID";
 import { CalendarEventBuilder } from "@calcom/features/CalendarEventBuilder";
 import { handleWebhookTrigger } from "@calcom/features/bookings/lib/handleWebhookTrigger";
 import { isEventTypeLoggingEnabled } from "@calcom/features/bookings/lib/isEventTypeLoggingEnabled";
-import { CacheService } from "@calcom/features/calendar-cache/lib/getShouldServeCache";
 import AssignmentReasonRecorder from "@calcom/features/ee/round-robin/assignmentReason/AssignmentReasonRecorder";
 import {
   allowDisablingAttendeeConfirmationEmails,
@@ -70,17 +70,15 @@ import { getLuckyUser } from "@calcom/lib/server/getLuckyUser";
 import { getTranslation } from "@calcom/lib/server/i18n";
 import { BookingRepository } from "@calcom/lib/server/repository/booking";
 import { WorkflowRepository } from "@calcom/lib/server/repository/workflow";
-import { HashedLinkService } from "@calcom/lib/server/service/hashedLinkService";
 import { getTimeFormatStringFromUserTimeFormat } from "@calcom/lib/timeFormat";
 import prisma from "@calcom/prisma";
 import type { AssignmentReasonEnum } from "@calcom/prisma/enums";
-import { BookingStatus, SchedulingType, WebhookTriggerEvents } from "@calcom/prisma/enums";
-import { CreationSource } from "@calcom/prisma/enums";
+import { BookingStatus, CreationSource, SchedulingType, WebhookTriggerEvents } from "@calcom/prisma/enums";
 import {
   eventTypeAppMetadataOptionalSchema,
   eventTypeMetaDataSchemaWithTypedApps,
+  userMetadata as userMetadataSchema,
 } from "@calcom/prisma/zod-utils";
-import { userMetadata as userMetadataSchema } from "@calcom/prisma/zod-utils";
 import { getAllWorkflowsFromEventType } from "@calcom/trpc/server/routers/viewer/workflows/util";
 import type { AdditionalInformation, AppsStatus, CalendarEvent, Person } from "@calcom/types/Calendar";
 import type { CredentialForCalendarService } from "@calcom/types/Credential";
@@ -92,10 +90,9 @@ import { refreshCredentials } from "./getAllCredentialsForUsersOnEvent/refreshCr
 import getBookingDataSchema from "./getBookingDataSchema";
 import { addVideoCallDataToEvent } from "./handleNewBooking/addVideoCallDataToEvent";
 import { checkActiveBookingsLimitForBooker } from "./handleNewBooking/checkActiveBookingsLimitForBooker";
-import { CheckBookingAndDurationLimitsService } from "./handleNewBooking/checkBookingAndDurationLimits";
 import { checkIfBookerEmailIsBlocked } from "./handleNewBooking/checkIfBookerEmailIsBlocked";
-import { createBooking } from "./handleNewBooking/createBooking";
 import type { Booking } from "./handleNewBooking/createBooking";
+import { createBooking } from "./handleNewBooking/createBooking";
 import { ensureAvailableUsers } from "./handleNewBooking/ensureAvailableUsers";
 import { getBookingData } from "./handleNewBooking/getBookingData";
 import { getCustomInputsResponses } from "./handleNewBooking/getCustomInputsResponses";
@@ -108,8 +105,8 @@ import { getVideoCallDetails } from "./handleNewBooking/getVideoCallDetails";
 import { handleAppsStatus } from "./handleNewBooking/handleAppsStatus";
 import { loadAndValidateUsers } from "./handleNewBooking/loadAndValidateUsers";
 import { createLoggerWithEventDetails } from "./handleNewBooking/logger";
-import { getOriginalRescheduledBooking } from "./handleNewBooking/originalRescheduledBookingUtils";
 import type { BookingType } from "./handleNewBooking/originalRescheduledBookingUtils";
+import { getOriginalRescheduledBooking } from "./handleNewBooking/originalRescheduledBookingUtils";
 import { scheduleNoShowTriggers } from "./handleNewBooking/scheduleNoShowTriggers";
 import type { IEventTypePaymentCredentialType, Invitee, IsFixedAwareUser } from "./handleNewBooking/types";
 import { validateBookingTimeIsNotOutOfBounds } from "./handleNewBooking/validateBookingTimeIsNotOutOfBounds";
@@ -919,15 +916,21 @@ async function handler(
               );
             }
             // if no error, then lucky user is available for the next slots
-            luckyUsers.push(newLuckyUser);
+            luckyUsers.push({
+              ...newLuckyUser,
+              center: newLuckyUser.center ?? null,
+            } as (typeof users)[number]);
           } catch {
-            notAvailableLuckyUsers.push(newLuckyUser);
+            notAvailableLuckyUsers.push({
+              ...newLuckyUser,
+              center: newLuckyUser.center ?? null,
+            } as (typeof users)[number]);
             loggerWithEventDetails.info(
               `Round robin host ${newLuckyUser.name} not available for first two slots. Trying to find another host.`
             );
           }
         } else {
-          luckyUsers.push(newLuckyUser);
+          luckyUsers.push({ ...newLuckyUser, center: newLuckyUser.center ?? null } as (typeof users)[number]);
         }
       }
 
@@ -942,7 +945,10 @@ async function handler(
       }
 
       // Pushing fixed user before the luckyUser guarantees the (first) fixed user as the organizer.
-      users = [...fixedUserPool, ...luckyUsers];
+      users = [
+        ...fixedUserPool.map((u) => ({ ...u, center: u.center ?? null } as (typeof users)[number])),
+        ...luckyUsers,
+      ];
       luckyUserResponse = { luckyUsers: luckyUsers.map((u) => u.id) };
       troubleshooterData = {
         ...troubleshooterData,
@@ -959,7 +965,12 @@ async function handler(
         ? eventTypeWithUsers.users.filter((user) => luckyUsers.find((luckyUserId) => luckyUserId === user.id))
         : [];
       const fixedHosts = eventTypeWithUsers.users.filter((user: IsFixedAwareUser) => user.isFixed);
-      users = [...fixedHosts, ...luckyUsersFromFirstBooking];
+      users = [
+        ...fixedHosts.map((u) => ({ ...u, center: u.center ?? null } as (typeof users)[number])),
+        ...luckyUsersFromFirstBooking.map(
+          (u) => ({ ...u, center: u.center ?? null } as (typeof users)[number])
+        ),
+      ];
       troubleshooterData = {
         ...troubleshooterData,
         luckyUsersFromFirstBooking: luckyUsersFromFirstBooking.map((u) => u.id),
@@ -1135,11 +1146,15 @@ async function handler(
   }
 
   //update cal event responses with latest location value , later used by webhook
-  if (reqBody.calEventResponses)
-    reqBody.calEventResponses["location"].value = {
-      value: platformBookingLocation ?? bookingLocation,
-      optionValue: "",
-    };
+  if (reqBody.calEventResponses) {
+    const responses = reqBody.calEventResponses as Record<string, any>;
+    if (responses["location"]) {
+      responses["location"].value = {
+        value: platformBookingLocation ?? bookingLocation,
+        optionValue: "",
+      };
+    }
+  }
 
   const eventName = getEventName(eventNameObject);
 
@@ -1213,7 +1228,7 @@ async function handler(
       schedulingType: eventType.schedulingType,
       users,
       team: eventType.team,
-      organizerUser,
+      organizerUser: { email: organizerUser.email },
     });
   }
 
@@ -1409,7 +1424,11 @@ async function handler(
           },
           id: eventTypeId,
           slug: eventTypeSlug,
-          organizerUser,
+          organizerUser: {
+            ...(organizerUser as any),
+            organizationId: (organizerUser as any).organizationId ?? null,
+            profile: (organizerUser as any).profile ?? null,
+          } as any,
           isConfirmedByDefault,
           paymentAppData,
         },
@@ -2366,6 +2385,19 @@ async function handler(
     paymentRequired: false,
   };
 
+  // HMS Integration - Non-blocking sync to Hospital Management System
+  // ---------------------------------------------------------------------------
+  await syncBookingToHMS({
+    organizerUser,
+    booking,
+    reqBody,
+    metadata,
+    videoCallUrl,
+    referencesToCreate,
+    isDryRun,
+    loggerWithEventDetails,
+  });
+
   return {
     ...bookingResponse,
     ...luckyUserResponse,
@@ -2375,6 +2407,163 @@ async function handler(
     seatReferenceUid: evt.attendeeSeatId,
     videoCallUrl: metadata?.videoCallUrl,
   };
+}
+
+/**
+ * Helper function to sync booking to HMS (Hospital Management System)
+ * This is a non-blocking operation - failures are logged but don't prevent booking
+ */
+async function syncBookingToHMS({
+  organizerUser,
+  booking,
+  reqBody,
+  metadata,
+  videoCallUrl,
+  referencesToCreate,
+  isDryRun,
+  loggerWithEventDetails,
+}: {
+  organizerUser: any;
+  booking: any;
+  reqBody: any;
+  metadata: any;
+  videoCallUrl: any;
+  referencesToCreate: any;
+  isDryRun: boolean;
+  loggerWithEventDetails: any;
+}) {
+  // Helper to update booking metadata (only in production mode)
+  const updateBookingMetadata = async (metadataUpdate: Record<string, any>) => {
+    if (isDryRun || !booking) return; // Skip in dry run or if no booking
+
+    try {
+      await prisma.booking.update({
+        where: { id: booking.id },
+        data: {
+          metadata: {
+            ...(typeof booking.metadata === "object" && booking.metadata ? booking.metadata : {}),
+            ...metadataUpdate,
+          },
+        },
+      });
+    } catch (error) {
+      loggerWithEventDetails.error(
+        "Failed to update booking metadata with HMS sync status",
+        safeStringify(error)
+      );
+    }
+  };
+
+  try {
+    // Early return: No organizer user
+    if (!organizerUser) {
+      loggerWithEventDetails.info("No organizer user - skipping HMS sync");
+      return;
+    }
+
+    // Early return: No HMS Center ID
+    const hmsCenterId = organizerUser.center?.hmsCenterId;
+    if (!hmsCenterId) {
+      loggerWithEventDetails.info("No HMS Center ID found - skipping HMS sync");
+      return;
+    }
+
+    // Early return: No HMS API configuration
+    const hmsApiBaseUrl = process.env.HMS_API_URL;
+    if (!hmsApiBaseUrl) {
+      loggerWithEventDetails.info("HMS API URL not configured - skipping HMS sync");
+      return;
+    }
+
+    // Build HMS payload
+    const durationMin = (new Date(booking.endTime).getTime() - new Date(booking.startTime).getTime()) / 60000;
+    const appointmentAt = new Date(booking.startTime).toISOString();
+    const meetingUrl = metadata?.videoCallUrl || videoCallUrl;
+    const consultationMode = meetingUrl ? "online" : "physical";
+    const googleCalendarRef = referencesToCreate?.find((ref: any) => ref.type === "google_calendar")?.uid;
+
+    let guestPhone = reqBody.responses.attendeePhoneNumber || "";
+    let guestCountryCode: CountryCode = "IN";
+
+    if (guestPhone) {
+      try {
+        const parsedPhone = parsePhoneNumberWithError(guestPhone, {
+          defaultCountry: guestCountryCode,
+        });
+
+        if (parsedPhone) {
+          guestPhone = parsedPhone.nationalNumber;
+          if (parsedPhone.country) {
+            guestCountryCode = parsedPhone.country;
+          }
+        }
+      } catch (error) {
+        loggerWithEventDetails.warn("Failed to parse phone number for HMS", { phone: guestPhone, error });
+      }
+    }
+
+    const payload = {
+      centre_id: Number(hmsCenterId),
+      consultant_email: organizerUser.email,
+      guest_first_name: reqBody.responses.first_name,
+      guest_last_name: reqBody.responses.last_name,
+      guest_email: reqBody.responses.email,
+      guest_country_code: guestCountryCode,
+      guest_phone: guestPhone,
+      appointment_at: appointmentAt,
+      duration_min: durationMin,
+      source: "web",
+      consultation_mode: consultationMode,
+      purpose: reqBody.responses.purpose,
+      service: reqBody.responses.service,
+      reason: reqBody.responses.notes,
+      notes: null,
+      calendar_event_ref: googleCalendarRef || undefined,
+      meeting_url: meetingUrl || undefined,
+    };
+
+    // Make HMS API request
+    const hmsApiUrl = `${hmsApiBaseUrl.replace(/\/$/, "")}/centres/${hmsCenterId}/appointments`;
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+
+    if (process.env.HMS_API_KEY) {
+      headers["X-Service-Key"] = process.env.HMS_API_KEY;
+    }
+
+    loggerWithEventDetails.info("Syncing booking to HMS", safeStringify(payload));
+
+    const response = await fetch(hmsApiUrl, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      loggerWithEventDetails.error(`HMS API Error: ${response.status} ${response.statusText}`, errorText);
+
+      await updateBookingMetadata({
+        hmsSyncFailed: true,
+        hmsSyncError: `HTTP ${response.status}: ${errorText}`,
+        hmsSyncAttemptedAt: new Date().toISOString(),
+      });
+    } else {
+      // Success
+      await updateBookingMetadata({
+        hmsSyncSuccess: true,
+        hmsSyncedAt: new Date().toISOString(),
+      });
+    }
+  } catch (error) {
+    // Log but don't throw - allow booking to succeed even if HMS sync fails
+    loggerWithEventDetails.error("Error in HMS Integration (non-critical)", JSON.stringify(error));
+
+    await updateBookingMetadata({
+      hmsSyncFailed: true,
+      hmsSyncError: error instanceof Error ? error.message : "Unknown error",
+      hmsSyncAttemptedAt: new Date().toISOString(),
+    });
+  }
 }
 
 export default handler;

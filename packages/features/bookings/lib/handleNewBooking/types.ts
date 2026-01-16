@@ -42,6 +42,10 @@ export type IsFixedAwareUser = User & {
   userLevelSelectedCalendars: SelectedCalendar[];
   allSelectedCalendars: SelectedCalendar[];
   availabilityData?: GetUserAvailabilityResult;
+  center?: {
+    id: number;
+    hmsCenterId: string | null;
+  } | null;
 };
 
 export type { PaymentAppData };

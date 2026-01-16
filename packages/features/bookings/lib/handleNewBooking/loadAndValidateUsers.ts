@@ -11,8 +11,7 @@ import { safeStringify } from "@calcom/lib/safeStringify";
 import { withReporting } from "@calcom/lib/sentryWrapper";
 import type { RoutingFormResponse } from "@calcom/lib/server/getLuckyUser";
 import { withSelectedCalendars } from "@calcom/lib/server/repository/user";
-import { userSelect } from "@calcom/prisma";
-import prisma from "@calcom/prisma";
+import prisma, { userSelect } from "@calcom/prisma";
 import { SchedulingType } from "@calcom/prisma/enums";
 import { credentialForCalendarServiceSelect } from "@calcom/prisma/selects/credential";
 import type { CredentialForCalendarService } from "@calcom/types/Credential";
@@ -124,7 +123,10 @@ const _loadAndValidateUsers = async ({
       logger.warn({ message: "NewBooking: eventTypeUser.notFound" });
       throw new HttpError({ statusCode: 404, message: "eventTypeUser.notFound" });
     }
-    users.push(withSelectedCalendars(eventTypeUser));
+    users.push({
+      ...withSelectedCalendars(eventTypeUser),
+      center: null,
+    });
   }
 
   if (!users) throw new HttpError({ statusCode: 404, message: "eventTypeUser.notFound" });

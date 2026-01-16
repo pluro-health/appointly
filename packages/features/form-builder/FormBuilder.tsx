@@ -622,7 +622,17 @@ function FieldEditDialog({
                       <Controller
                         name="options"
                         render={({ field: { value, onChange } }) => {
-                          return <Options onChange={onChange} value={value} className="mt-6" />;
+                          return (
+                            <Options
+                              onChange={onChange}
+                              value={value}
+                              className="mt-6"
+                              readOnly={
+                                fieldForm.getValues("editable") === "system" ||
+                                fieldForm.getValues("editable") === "system-but-optional"
+                              }
+                            />
+                          );
                         }}
                       />
                     ) : null}

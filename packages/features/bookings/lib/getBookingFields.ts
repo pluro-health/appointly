@@ -140,13 +140,25 @@ export const ensureBookingInputsHaveSystemFields = ({
   // These fields should be added before other user fields
   const systemBeforeFields: typeof bookingFields = [
     {
-      type: "name",
-      // This is the `name` of the main field
-      name: "name",
+      type: "text",
+      name: "first_name",
       editable: "system",
-      // This Label is used in Email only as of now.
-      defaultLabel: "your_name",
+      defaultLabel: "First Name",
       required: true,
+      sources: [
+        {
+          label: "Default",
+          id: "default",
+          type: "default",
+        },
+      ],
+    },
+    {
+      type: "text",
+      name: "last_name",
+      editable: "system",
+      defaultLabel: "Last Name",
+      required: false,
       sources: [
         {
           label: "Default",
@@ -159,8 +171,8 @@ export const ensureBookingInputsHaveSystemFields = ({
       defaultLabel: "email_address",
       type: "email",
       name: "email",
-      required: !isEmailFieldOptional,
-      editable: "system-but-optional",
+      required: true,
+      editable: "system",
       sources: [
         {
           label: "Default",
@@ -221,6 +233,60 @@ export const ensureBookingInputsHaveSystemFields = ({
 
   // These fields should be added after other user fields
   const systemAfterFields: typeof bookingFields = [
+    {
+      defaultLabel: "Service",
+      type: "select",
+      name: "service",
+      editable: "system",
+      required: true,
+      options: [
+        { label: "Gynaecology", value: "gynaecology" },
+        { label: "Obstetrics", value: "obstetrics" },
+        { label: "Fertility", value: "fertility" },
+        { label: "Andrology", value: "andrology" },
+        { label: "Reproductive Health", value: "reproductive_health" },
+        { label: "Urology", value: "urology" },
+        { label: "Endocrinology", value: "endocrinology" },
+        { label: "Others", value: "others" },
+      ],
+      sources: [
+        {
+          label: "Default",
+          id: "default",
+          type: "default",
+        },
+      ],
+    },
+    {
+      defaultLabel: "Purpose",
+      type: "select",
+      name: "purpose",
+      editable: "system",
+      required: true,
+      options: [
+        { label: "Consultation", value: "consultation" },
+        { label: "Follow Up", value: "follow_up" },
+        { label: "Investigation", value: "investigation" },
+        { label: "Procedure", value: "procedure" },
+        { label: "Review", value: "review" },
+        { label: "Counselling", value: "counselling" },
+      ],
+      sources: [
+        {
+          label: "Default",
+          id: "default",
+          type: "default",
+          options: [
+            { label: "Consultation", value: "consultation" },
+            { label: "Follow Up", value: "follow_up" },
+            { label: "Investigation", value: "investigation" },
+            { label: "Procedure", value: "procedure" },
+            { label: "Review", value: "review" },
+            { label: "Counselling", value: "counselling" },
+          ],
+        },
+      ],
+    },
     {
       defaultLabel: "what_is_this_meeting_about",
       type: "text",
