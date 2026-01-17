@@ -2478,8 +2478,15 @@ async function syncBookingToHMS({
     // Build HMS payload
     const durationMin = (new Date(booking.endTime).getTime() - new Date(booking.startTime).getTime()) / 60000;
     const appointmentAt = new Date(booking.startTime).toISOString();
-    const meetingUrl = metadata?.videoCallUrl || videoCallUrl;
-    const consultationMode = meetingUrl ? "online" : "physical";
+
+    const locationType = booking.location;
+    const consultationMode = locationType === "integrations:google:meet" ? "online" : "in_person";
+
+    const googleMeetRef = referencesToCreate?.find(
+      (ref: any) => ref.type === "google_meet_video" && ref.meetingUrl
+    );
+    const meetingUrl = googleMeetRef?.meetingUrl || null;
+
     const googleCalendarRef = referencesToCreate?.find((ref: any) => ref.type === "google_calendar")?.uid;
 
     let guestPhone = reqBody.responses.attendeePhoneNumber || "";

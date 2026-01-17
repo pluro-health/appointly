@@ -16,7 +16,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   const log = logger.getSubLogger({ prefix: ["API", "appointly", "cancellation-info"] });
 
   try {
-    const bookingId = parseInt(params.id);
+    const { id } = await params;
+    const bookingId = parseInt(id);
 
     if (isNaN(bookingId)) {
       return NextResponse.json({ error: "Invalid booking ID" }, { status: 400 });
@@ -71,7 +72,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     return NextResponse.json(cancellationInfo);
   } catch (error: any) {
     log.error("Cancellation info API error", {
-      bookingId: params.id,
+      bookingId,
       error: error?.message || error,
     });
 
