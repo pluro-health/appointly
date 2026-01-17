@@ -15,9 +15,11 @@ import { buildLegacyRequest } from "@lib/buildLegacyCtx";
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   const log = logger.getSubLogger({ prefix: ["API", "appointly", "cancellation-info"] });
 
+  let bookingId: number | undefined;
+
   try {
     const { id } = await params;
-    const bookingId = parseInt(id);
+    bookingId = parseInt(id);
 
     if (isNaN(bookingId)) {
       return NextResponse.json({ error: "Invalid booking ID" }, { status: 400 });
