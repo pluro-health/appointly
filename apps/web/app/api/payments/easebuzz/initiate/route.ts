@@ -37,23 +37,9 @@ const initiatePaymentResponseSchema = z.object({
 export type EasebuzzInitiatePaymentResponse = z.infer<typeof initiatePaymentResponseSchema>;
 
 async function handler(req: NextRequest) {
-  console.log("🚀 Easebuzz payment initiation started");
-
   const session = await getServerSession({ req: buildLegacyRequest(await headers(), await cookies()) });
-  console.log("Session check:", {
-    hasSession: !!session,
-    userId: session?.user?.id || "guest",
-    isGuest: !session?.user?.id,
-  });
 
   const body = await req.json();
-  console.log("📋 Request body received:", {
-    hasEventTypeId: !!body.eventTypeId,
-    hasStartTime: !!body.startTime,
-    hasEndTime: !!body.endTime,
-    hasResponses: !!body.responses,
-    timeZone: body.timeZone,
-  });
 
   const parseResult = initiatePaymentSchema.safeParse(body);
   if (!parseResult.success) {
@@ -69,8 +55,6 @@ async function handler(req: NextRequest) {
   let eventType: any = null; // Declare outside try block to access in catch
 
   try {
-    console.log("🔍 Looking up event type:", eventTypeId);
-
     // 1. Get event type with payment configuration
     eventType = await prisma.eventType.findUnique({
       where: { id: eventTypeId },
@@ -88,12 +72,6 @@ async function handler(req: NextRequest) {
       throw new HttpError({ statusCode: 404, message: "Event type not found" });
     }
 
-    console.log("Event type found:", {
-      title: eventType.title,
-      requiresPayment: eventType.requiresPayment,
-      consultationPrice: eventType.consultationPrice,
-    });
-
     // 2. Validate payment is required
     if (
       !eventType.requiresPayment ||
@@ -108,7 +86,6 @@ async function handler(req: NextRequest) {
     }
 
     // 3. Check if Easebuzz is configured
-    console.log(" Checking Easebuzz configuration...");
     const configManager = new EasebuzzConfigManager();
     if (!configManager.isConfigured()) {
       console.error("Easebuzz not configured");
@@ -118,19 +95,11 @@ async function handler(req: NextRequest) {
       });
     }
 
-    console.log("Easebuzz configuration validated");
-
     // 4. Generate unique IDs
     const bookingUid = `booking_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
     const merchantTxnId = `appointly_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
 
-    console.log("Generated IDs:", {
-      bookingUid: bookingUid.substring(0, 20) + "...",
-      merchantTxnId: merchantTxnId.substring(0, 20) + "...",
-    });
-
     // 5. Create booking with PENDING_PAYMENT status (NOT CONFIRMED)
-    console.log("Creating booking with PENDING_PAYMENT status...");
     const booking = await prisma.booking.create({
       data: {
         uid: bookingUid,
@@ -160,16 +129,7 @@ async function handler(req: NextRequest) {
       },
     });
 
-    console.log("Booking created:", {
-      id: booking.id,
-      uid: booking.uid,
-      status: booking.status,
-      paymentStatus: booking.paymentStatus,
-      paid: booking.paid,
-    });
-
     // 6. Create payment record
-    console.log("💳 Creating payment record...");
     const paymentRecord = await prisma.easebuzzPayment.create({
       data: {
         bookingId: booking.id,
@@ -181,13 +141,6 @@ async function handler(req: NextRequest) {
         status: "PENDING",
         easebuzzResponse: {},
       },
-    });
-
-    console.log("Payment record created:", {
-      id: paymentRecord.id,
-      merchantTxnId: paymentRecord.merchantTxnId,
-      amount: paymentRecord.amount,
-      currency: paymentRecord.currency,
     });
 
     // 7. Prepare data for Easebuzz service
@@ -207,7 +160,7 @@ async function handler(req: NextRequest) {
       startTime: booking.startTime,
       endTime: booking.endTime,
       userEmail: responses.email || "",
-      userName: responses.name || "",
+      userName: responses.name || responses.first_name + " " + responses.last_name || "",
       userPhone: userPhone,
       amount: Number(eventType.consultationPrice),
       currency: eventType.paymentCurrency || "INR",
@@ -222,8 +175,6 @@ async function handler(req: NextRequest) {
         }
       : null;
 
-    console.log("🔄 Calling Easebuzz service for payment initiation...");
-
     // 8. Initialize Easebuzz service and create payment
     const easebuzzService = new EasebuzzService();
     const paymentResult = await easebuzzService.initiatePayment(
@@ -231,13 +182,6 @@ async function handler(req: NextRequest) {
       centerData,
       Number(eventType.consultationPrice)
     );
-
-    console.log("📡 Easebuzz service response:", {
-      success: paymentResult.success,
-      hasPaymentUrl: !!paymentResult.paymentUrl,
-      transactionId: paymentResult.transactionId,
-      error: paymentResult.error,
-    });
 
     if (!paymentResult.success) {
       console.error("Payment initiation failed, rolling back...");
@@ -257,7 +201,6 @@ async function handler(req: NextRequest) {
     }
 
     // 9. Update payment record with Easebuzz transaction ID
-    console.log("📝 Updating payment record with Easebuzz transaction ID...");
     await prisma.easebuzzPayment.update({
       where: { id: paymentRecord.id },
       data: {
@@ -265,8 +208,6 @@ async function handler(req: NextRequest) {
         easebuzzResponse: paymentResult.response || {},
       },
     });
-
-    console.log("Payment record updated with Easebuzz transaction ID");
 
     logger.info("Payment initiated successfully (Easebuzz)", {
       bookingId: booking.id,
@@ -287,7 +228,6 @@ async function handler(req: NextRequest) {
       message: "Payment initiated successfully. Redirecting to Easebuzz...",
     };
 
-    console.log(" Payment initiation completed successfully");
     return NextResponse.json(response);
   } catch (error) {
     console.error("💥 Payment initiation failed:", error);
